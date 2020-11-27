@@ -10,7 +10,7 @@ sinks = []
 sanitizers = []
 output = []
 vardict = {}
-global flows #FIXME: just testing if list works 
+global flows
 flows = []
 
 class VarObj:
@@ -107,11 +107,15 @@ class AssignmentExpression(Node):
         self.right = ExpressionStatement(right)
 
     def parse(self, pattern):
+        global flows
         self.left.parse(pattern)
         self.right.parse(pattern)
 
-        self.taint = self.right.taint #FIXME what about sans, also, check sinks?
+        self.taint = self.right.taint
         vardict[self.left.name].taint = self.right.taint
+
+        if self.taint.state == "t" and self.left.name in pattern['sinks']: #FIXME sans
+            flows += [pattern['vulnerability'], self.taint.sources, self.taint.sans, self.left.name]
 
 class CallExpression(Node):
 
@@ -129,20 +133,21 @@ class CallExpression(Node):
             self.arguments += [ExpressionStatement(arg)]
 
     def parse(self, pattern):
+        global flows
         self.callee.parse(pattern)
-        print(self.callee.taint.state)
 
         self.taint = self.callee.taint
         for arg in self.arguments:
             arg.parse(pattern)
             if arg.taint.state == "t" or arg.taint.state == "s" and self.taint.state == "u":
-                self.taint = arg.taint #FIXME check if callee is sink
+                self.taint = arg.taint
 
         if self.taint.state == "t" and self.callee.name in pattern['sanitizers'] and vardict[self.callee.name].taint.state != "t": 
             self.taint = Taint("s", self.taint.sources, self.taint.sans + [self.callee.name])
 
-        #check if callee is sink FIXME or should we check in variable node?
 
+        if self.taint.state == "t" and self.callee.name in pattern['sinks']: #FIXME sans
+            flows += [pattern['vulnerability'], self.taint.sources, self.taint.sans, self.callee.name]
 
 
 
@@ -173,6 +178,7 @@ def analyseSlice(pattern_list, program_json):
     print("afin:", vardict['a'].name, vardict['a'].taint.state)
     print("bfin:", vardict['b'].name, vardict['b'].taint.state)
     print("dfin:", vardict['d'].name, vardict['d'].taint.state)   
+    print(flows)
 
 '''
 
