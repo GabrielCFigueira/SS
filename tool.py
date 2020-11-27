@@ -57,9 +57,14 @@ def analyseSlice(pattern_list, program_json):
         for var_json in program_json['body']:
             stmt = var_json    
             parser(stmt, pat)
+            #print("a:", vardict['a'].name, vardict['a'].taint, vardict['a'].sources, vardict['a'].sans)   
+
         
-    print(flows)
-    #print("a:", vardict['b'].name, vardict['b'].taint, vardict['b'].sources, vardict['b'].sans)
+    print("flows: ",flows)
+    print("afin:", vardict['a'].name, vardict['a'].taint, vardict['a'].sources, vardict['a'].sans)
+    print("bfin:", vardict['b'].name, vardict['b'].taint, vardict['b'].sources, vardict['b'].sans)
+    print("dfin:", vardict['d'].name, vardict['d'].taint, vardict['d'].sources, vardict['d'].sans)   
+
 
 def parser(exprstmt, pattern):
    if exprstmt['type'] == 'ExpressionStatement':
@@ -77,8 +82,18 @@ def assignExprParser(expr, pattern):
     left = expr['left']
     right = expr['right']
     if left['name'] not in vardict.keys():
-        vardict[left['name']] = VarObj(left['name'], 'u', [], [])
-    if right['type'] == 'CallExpression':
+        if [left['name']] in pattern['sources']: 
+            vardict[left['name']] = VarObj(left['name'], 't', [left['name']], [])
+        else:
+            vardict[left['name']] = VarObj(left['name'], 'u', [], [])
+
+
+    if right['type'] == 'Literal':
+            vardict[left['name']].setValues('u', [], [])
+            print("alit:", vardict['a'].name, vardict['a'].taint, vardict['a'].sources, vardict['a'].sans)
+
+
+    elif right['type'] == 'CallExpression':
         callExprParser(right, pattern)
         if vardict[right['callee']['name']].taint != 'u':
             var_right = vardict[right['callee']['name']]
@@ -90,25 +105,57 @@ def callExprParser(expr, pat):
     global flows #FIXME: remove this
     callee = expr['callee']['name']
     if callee not in vardict.keys():
+        if callee in pat['source']:
+            vardict[callee] = VarObj(callee, 't', [callee], [])
+        elif callee in pat['sanitizers']:
+            vardict[callee] = VarObj(callee, 's', [], []) #
+        else:
+            vardict[callee] = VarObj(callee, 'u', [], []) 
+    for arg in expr['arguments']:
+        #if call expression...
+        if arg['name'] not in vardict.keys():
+            if arg['name'] in pat['sources']:
+                vardict[arg['name']] = VarObj(arg['name'], 't', [arg['name']], [])
+            else:
+                vardict[arg['name']] = VarObj(arg['name'], 'u', [], [])
+        if callee in pat['sanitizers']:
+            if 
+            vardict[arg['name']].setValues('c', vardict[arg['name']].sources, [callee])
+        if vardict[arg['name']].taint != 'u':
+
+            
+                 
+           
+    '''
+    if callee not in vardict.keys():
         vardict[callee] = VarObj(callee, 'u', [], [])
     if callee in pat['sources']:
         vardict[callee].setSources('t', [callee])
     for arg in expr['arguments']:
         #if callExpression...
-        if arg['name'] not in vardict.keys():
-            vardict[arg['name']] = VarObj(arg['name'], 't', [arg['name']], []) #FIXME: check if default should be tainted
+        #if arg['name'] not in vardict.keys():
+            #vardict[arg['name']] = VarObj(arg['name'], 't', [arg['name']], []) #FIXME: check if default should be tainted
         if arg['name'] in pat['sources']:
-            vardict[arg['name']].setSources('t', [arg['name']])
-            vardict[callee].setSources('t', [arg['name']]) 
+            if arg['name'] not in vardict.keys():
+                vardict[arg['name']] = VarObj(arg['name'], 't', [arg['name']], []) #FIXME: check if default should be tainted
+                vardict[arg['name']].setSources('t', [arg['name']])
+                vardict[callee].setSources('t', [arg['name']])
+            else:
+                vardict[callee].setValues(vardict[arg['name']].taint, vardict[arg['name']].sources, vardict[arg['name']].sans)
         elif vardict[arg['name']].taint == 't':
             vardict[callee].setSources('t', vardict[arg['name']].sources)
    
     if callee in pat['sinks']:
         for arg in expr['arguments']:
+            print("a?", arg)
             if vardict[arg['name']].taint == 't':
                 flows += [[pat['vulnerability'], vardict[callee].sources, vardict[callee].name, []]]
             #elif vardict[arg['name'].taint == 's':
                 #todo
+            #elif vardict[arg['name']].taint == 'u':
+               #flows += [["no vulnnnnn", [], vardict[callee].name, []]]
+
+
 
 
 
