@@ -157,7 +157,7 @@ class CallExpression(Node):
             if arg.state() == "t" or arg.state() == "s" and self.state() == "u":
                 self.merge(self.taints, arg.taints)
 
-        if self.state() == "t" and self.callee.name in pattern['sanitizers'] and vardict[self.callee.name].state() != "t": 
+        if self.state() != "u" and self.callee.name in pattern['sanitizers'] and vardict[self.callee.name].state() != "t": 
             self.sanitize(self.callee.name)
 
 
@@ -210,9 +210,9 @@ def analyseSlice(pattern_list, program_json):
             p.parse(pat)
 
         #vardict = {}
-        print("afin:", vardict['a'].name, vardict['a'].state())
-        print("bfin:", vardict['b'].name, vardict['b'].state())
-        print("dfin:", vardict['d'].name, vardict['d'].state())   
+        #print("afin:", vardict['a'].name, vardict['a'].state())
+        #print("bfin:", vardict['b'].name, vardict['b'].state())
+        #print("dfin:", vardict['d'].name, vardict['d'].state())   
         vardict = {}
     print(flows)
 
