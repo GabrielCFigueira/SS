@@ -1,0 +1,30 @@
+[
+  {"vulnerability": "oh no",
+  "sources": ["a"],
+  "sanitizers": [],
+  "sinks": ["d"]},
+
+ {"vulnerability": " no",
+  "sources": ["c"],
+  "sanitizers": [],
+  "sinks": ["e"]},
+
+{"vulnerability": "ono",
+  "sources": ["a", "c"],
+  "sanitizers": [],
+  "sinks": ["d", "e"]},
+
+{"vulnerability": "oinno",
+  "sources": ["b"],
+  "sanitizers": [],
+  "sinks": ["e"]},
+
+{"vulnerability": "oinno",
+  "sources": ["b"],
+  "sanitizers": [],
+  "sinks": ["c", "d", "e"]}
+
+
+
+]
+
