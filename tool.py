@@ -80,7 +80,7 @@ class Variable(Node):
         self.taints = copy.deepcopy(vardict[self.name].taints)
 
 
-class ExpressionStatement(Node):
+class Statement(Node):
 
     def __init__(self, node):
         super().__init__()
@@ -94,6 +94,12 @@ class ExpressionStatement(Node):
             self.expression = Literal(node)
         elif node['type'] == "BinaryExpression":
             self.expression = BinaryExpression(node) 
+        elif node['type'] == "ExpressionStatement":
+            self.expression = Statement(node['expression'])   
+        elif node['type'] == "IfStatement":
+            self.expression = IfStatement(node)   
+        elif node['type'] == "BlockStatement":
+            self.expression = BlockStatement(node)   
         else:
             raise ValueError("Shoud have never come here")
 
@@ -114,7 +120,7 @@ class AssignmentExpression(Node):
         else:
             raise ValueError("Shoud have never come here")
 
-        self.right = ExpressionStatement(right)
+        self.right = Statement(right)
 
     def parse(self, pattern):
         global flows
@@ -145,7 +151,7 @@ class CallExpression(Node):
 
         self.arguments = []
         for arg in node['arguments']:
-            self.arguments += [ExpressionStatement(arg)]
+            self.arguments += [Statement(arg)]
 
     def parse(self, pattern):
         global flows
@@ -175,8 +181,8 @@ class BinaryExpression(Node):
         left = node['left']
         right = node['right']
         
-        self.left = ExpressionStatement(left)
-        self.right = ExpressionStatement(right)
+        self.left = Statement(left)
+        self.right = Statement(right)
 
     def parse(self, pattern):
         global flows
@@ -185,7 +191,29 @@ class BinaryExpression(Node):
 
         self.merge(self.right.taints,self.left.taints)
        
-        
+class IfStatement(Node):
+
+    def __init__(self, node):
+        super().__init__()
+        test = node['test']
+        consequent = node['consequent']
+        alternate = node['alternate']
+
+        self.test = Statement(test)
+        self.consequent = Statement(consequent)
+        self.alternate = Statement(alternate)
+
+    def parse(self, pattern):
+        pass
+
+class BlockStatement(Node):
+
+    def __init__(self, node):
+        super().__init__()
+      
+    def parse(self, pattern):
+        pass
+
 filename = str(program.split(".")[0])
 
 f = open(pattern, "r")
@@ -205,7 +233,8 @@ def analyseSlice(pattern_list, program_json):
     for pat in pattern_list:
         program = []
         for var_json in program_json['body']:
-            program += [ExpressionStatement(var_json["expression"])]
+            print("var: ",var_json, "\n\n")
+            program += [Statement(var_json)]
         for p in program:
             p.parse(pat)
 
