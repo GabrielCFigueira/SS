@@ -1,0 +1,39 @@
+[
+  {"vulnerability": "[1] a -> t",
+  "sources": ["a"],
+  "sanitizers": [],
+  "sinks": ["t"]},
+
+ {"vulnerability": "[2] a-> z, san -> t",
+  "sources": ["a"],
+  "sanitizers": ["t"],
+  "sinks": ["z"]},
+
+{"vulnerability": "[3] a -> t, san -> t",
+  "sources": ["a"],
+  "sanitizers": ["t"],
+  "sinks": ["t"]},
+
+{"vulnerability": "[4] t -> z",
+  "sources": ["t"],
+  "sanitizers": [],
+  "sinks": ["z"]},
+
+{"vulnerability": "[5] t -> z, san -> z",
+  "sources": ["t"],
+  "sanitizers": ["z"],
+  "sinks": ["z"]},
+
+{"vulnerability": "[6] a,t -> z",
+  "sources": ["a", "t"],
+  "sanitizers": [],
+  "sinks": ["z"]},
+
+{"vulnerability": "[7] a -> t,z, san -> t,z",
+  "sources": ["a"],
+  "sanitizers": ["t", "z"],
+  "sinks": ["t", "z"]}
+
+
+]
+
