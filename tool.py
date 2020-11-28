@@ -155,7 +155,7 @@ class CallExpression(Node):
         for arg in self.arguments:
             arg.parse(pattern)
             if arg.state() == "t" or arg.state() == "s" and self.state() == "u":
-                self.taints = arg.taints #FIXME several sources tainted?
+                self.merge(self.taints, arg.taints)
 
         if self.state() == "t" and self.callee.name in pattern['sanitizers'] and vardict[self.callee.name].state() != "t": 
             self.sanitize(self.callee.name)

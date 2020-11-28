@@ -27,8 +27,17 @@
 {"vulnerability": "b -> ef, san -> e",
   "sources": ["b"],
   "sanitizers": ["e"],
-  "sinks": ["e", "f"]}
+  "sinks": ["e", "f"]},
 
+{"vulnerability": "b -> e, g -> e",
+  "sources": ["b", "g"],
+  "sanitizers": [],
+  "sinks": ["e"]},
+
+{"vulnerability": "b -> f, g -> f",
+  "sources": ["b", "g"],
+  "sanitizers": ["e"],
+  "sinks": ["f"]}
 
 ]
 
