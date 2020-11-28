@@ -110,9 +110,13 @@ class AssignmentExpression(Node):
         self.taint = self.right.taint
         vardict[self.left.name].taint = self.right.taint
 
-        if self.taint.state == "t" and self.left.name in pattern['sinks']: #FIXME sans
+        if self.taint.state == "t" and self.left.name in pattern['sinks']: 
             flows += [pattern['vulnerability'], self.taint.sources, self.taint.sans, self.left.name]
 
+        elif self.taint.state == "s" and self.left.name in pattern['sinks']: #FIXME check if makes sense
+            flows += [str(pattern['vulnerability']) + " -> Sanitized, but migh still be compromised", self.taint.sources, self.taint.sans, self.left.name]
+
+            
 class CallExpression(Node):
 
     def __init__(self, node):
@@ -142,9 +146,11 @@ class CallExpression(Node):
             self.taint = Taint("s", self.taint.sources, self.taint.sans + [self.callee.name])
 
 
-        if self.taint.state == "t" and self.callee.name in pattern['sinks']: #FIXME sans
+        if self.taint.state == "t" and self.callee.name in pattern['sinks']:
             flows += [pattern['vulnerability'], self.taint.sources, self.taint.sans, self.callee.name]
 
+        elif self.taint.state == "s" and self.callee.name in pattern['sinks']: #FIXME check if makes sense
+            flows += [str(pattern['vulnerability']) + " -> Sanitized, but migh still be compromised", self.taint.sources, self.taint.sans, self.callee.name]
 
 
 
