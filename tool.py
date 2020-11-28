@@ -41,7 +41,7 @@ class Node:
         for t in taints2:
             if t not in taints1:
                 result += [t]
-        self.taints = results
+        self.taints = result
 
     def sanitize(self, function):
         for t in self.taints:
@@ -92,6 +92,8 @@ class ExpressionStatement(Node):
             self.expression = Variable(node)
         elif node['type'] == "Literal":
             self.expression = Literal(node)
+        elif node['type'] == "BinaryExpression":
+            self.expression = BinaryExpression(node) 
         else:
             raise ValueError("Shoud have never come here")
 
@@ -166,8 +168,24 @@ class CallExpression(Node):
                 elif taint.state == "s":
                     flows += [str(pattern['vulnerability']) + " -> Sanitized, but migh still be compromised", taint.source, taint.sans, self.callee.name]
 
+class BinaryExpression(Node):
 
+    def __init__(self, node):
+        super().__init__()
+        left = node['left']
+        right = node['right']
+        
+        self.left = ExpressionStatement(left)
+        self.right = ExpressionStatement(right)
 
+    def parse(self, pattern):
+        global flows
+        self.left.parse(pattern)
+        self.right.parse(pattern)
+
+        self.merge(self.right.taints,self.left.taints)
+       
+        
 filename = str(program.split(".")[0])
 
 f = open(pattern, "r")
