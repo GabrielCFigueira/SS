@@ -1,5 +1,6 @@
 import sys
 import json
+import copy
 
 program = sys.argv[1]
 pattern = sys.argv[2]
@@ -9,37 +10,48 @@ vardict = {}
 global flows
 flows = []
 
-class VarObj:
-    def __init__(self, name, taint):
-        self.name = name
-        self.taint = taint
-    """
-    def setSources(self, taint, sources):
-        self.taint = taint
-        for s in sources:
-            if s not in self.sources:
-                self.sources.append(s)
-   
-    def setSans(self, taint, sans):
-        self.taint = taint
-        for s in sans:
-            if s not in self.sans:
-                self.sans.appen(s)
-      
-    def setValues(self, taint, sources, sans):
-        self.setSources(taint, sources)
-        self.setSans(taint, sans)
-    """
 
 class Taint:
-    def __init__(self, state, sources, sans):
+    def __init__(self, state, source, sans):
         self.state = state
-        self.sources = sources
+        self.source = source
+        self.sans = sans
+
+    def __eq__(self, other):
+        return self.state == other.state and self.source == other.source and self.sans == other.sans
+
+    def setValues(self, state, source, sans):
+        self.source = source
+        self.state = state
         self.sans = sans
 
 class Node:
     def __init__(self):
-        self.taint = Taint("u", [], [])
+        self.taints = []
+
+    def state(self):
+        state = "u"
+        for s in self.taints:
+            if s.state == "t" or s.state == "s" and state == "u":
+                state = s.state
+        return state
+
+    def merge(self, taints1, taints2):
+        result = taints1
+        for t in taints2:
+            if t not in taints1:
+                result += [t]
+        self.taints = results
+
+    def sanitize(self, function):
+        for t in self.taints:
+            t.setValues("s", t.source, t.sans + [function])
+
+class VarObj(Node):
+    def __init__(self, name, taints):
+        super().__init__()
+        self.name = name
+        self.taints = taints
 
 
 class Literal(Node):
@@ -60,12 +72,12 @@ class Variable(Node):
     def parse(self, pattern):
         if self.name not in vardict.keys():
             if self.name in pattern['sources']:
-                taint = Taint("t", [self.name], [])
-                vardict[self.name] = VarObj(self.name, taint)
+                taint = Taint("t", self.name, [])
+                vardict[self.name] = VarObj(self.name, [taint])
             else:
-                vardict[self.name] = VarObj(self.name, Taint("u", [], []))
+                vardict[self.name] = VarObj(self.name, [])
         
-        self.taint = vardict[self.name].taint
+        self.taints = copy.deepcopy(vardict[self.name].taints)
 
 
 class ExpressionStatement(Node):
@@ -85,7 +97,7 @@ class ExpressionStatement(Node):
 
     def parse(self, pattern):
         self.expression.parse(pattern)
-        self.taint = self.expression.taint
+        self.taints = self.expression.taints
 
 
 class AssignmentExpression(Node):
@@ -107,14 +119,15 @@ class AssignmentExpression(Node):
         self.left.parse(pattern)
         self.right.parse(pattern)
 
-        self.taint = self.right.taint
-        vardict[self.left.name].taint = self.right.taint
+        self.taints = self.right.taints
+        vardict[self.left.name].taints = copy.deepcopy(self.right.taints)
 
-        if self.taint.state == "t" and self.left.name in pattern['sinks']: 
-            flows += [pattern['vulnerability'], self.taint.sources, self.taint.sans, self.left.name]
-
-        elif self.taint.state == "s" and self.left.name in pattern['sinks']: #FIXME check if makes sense
-            flows += [str(pattern['vulnerability']) + " -> Sanitized, but migh still be compromised", self.taint.sources, self.taint.sans, self.left.name]
+        if self.left.name in pattern['sinks']:
+            for taint in self.taints:
+                if taint.state == "t":
+                    flows += [pattern['vulnerability'], taint.source, taint.sans, self.left.name]
+                elif taint.state == "s":
+                    flows += [str(pattern['vulnerability']) + " -> Sanitized, but migh still be compromised", taint.source, taint.sans, self.left.name]
 
             
 class CallExpression(Node):
@@ -135,22 +148,23 @@ class CallExpression(Node):
     def parse(self, pattern):
         global flows
         self.callee.parse(pattern)
+        self.taints = self.callee.taints
 
-        self.taint = self.callee.taint
         for arg in self.arguments:
             arg.parse(pattern)
-            if arg.taint.state == "t" or arg.taint.state == "s" and self.taint.state == "u":
-                self.taint = arg.taint
+            if arg.state() == "t" or arg.state() == "s" and self.state() == "u":
+                self.taints = arg.taints #FIXME several sources tainted?
 
-        if self.taint.state == "t" and self.callee.name in pattern['sanitizers'] and vardict[self.callee.name].taint.state != "t": 
-            self.taint = Taint("s", self.taint.sources, self.taint.sans + [self.callee.name])
+        if self.state() == "t" and self.callee.name in pattern['sanitizers'] and vardict[self.callee.name].state() != "t": 
+            self.sanitize(self.callee.name)
 
 
-        if self.taint.state == "t" and self.callee.name in pattern['sinks']:
-            flows += [pattern['vulnerability'], self.taint.sources, self.taint.sans, self.callee.name]
-
-        elif self.taint.state == "s" and self.callee.name in pattern['sinks']: #FIXME check if makes sense
-            flows += [str(pattern['vulnerability']) + " -> Sanitized, but migh still be compromised", self.taint.sources, self.taint.sans, self.callee.name]
+        if self.callee.name in pattern['sinks']:
+            for taint in self.taints:
+                if taint.state == "t":
+                    flows += [pattern['vulnerability'], taint.source, taint.sans, self.callee.name]
+                elif taint.state == "s":
+                    flows += [str(pattern['vulnerability']) + " -> Sanitized, but migh still be compromised", taint.source, taint.sans, self.callee.name]
 
 
 
@@ -178,9 +192,9 @@ def analyseSlice(pattern_list, program_json):
             p.parse(pat)
 
         #vardict = {}
-        print("afin:", vardict['a'].name, vardict['a'].taint.state)
-        print("bfin:", vardict['b'].name, vardict['b'].taint.state)
-        print("dfin:", vardict['d'].name, vardict['d'].taint.state)   
+        print("afin:", vardict['a'].name, vardict['a'].state())
+        print("bfin:", vardict['b'].name, vardict['b'].state())
+        print("dfin:", vardict['d'].name, vardict['d'].state())   
         vardict = {}
     print(flows)
 
