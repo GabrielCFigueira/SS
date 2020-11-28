@@ -10,6 +10,8 @@ vardict = {}
 global flows
 flows = []
 
+global stack
+
 
 class Taint:
     def __init__(self, state, source, sans):
@@ -24,6 +26,42 @@ class Taint:
         self.source = source
         self.state = state
         self.sans = sans
+
+class Vuln:
+    def __init__(self, name, source, sans, sink):
+        self.name = name
+        self.source = source
+        self.sans = sans
+        self.sink = sink
+
+    def toString(self):
+        return "\t{\"vulnerability\": \"" + self.name + "\",\n\
+\t\"sources\": [\"" + self.source + "\"],\n\
+\t\"sanitizers\": " + str(self.sans) + ",\n\
+\t\"sinks\": [\"" + self.sink + "\"]}"
+
+    def __eq__(self, other):
+        return self.name == other.name and self.source == other.source and self.sans == other.sans and self.sink == other.sink
+
+
+class Stack:
+    def __init__(self):
+        self.contexts = []
+
+    def push(self, context):
+        self.contexts += [context]
+
+    def pop(self):
+        return self.contexts.pop()
+
+    def taints(self):
+        result = []
+        for context in self.contexts:
+            for taint in context:
+                if taint not in result:
+                    result += [taint]
+        return result
+
 
 class Node:
     def __init__(self):
@@ -47,6 +85,10 @@ class Node:
         for t in self.taints:
             t.setValues("s", t.source, t.sans + [function])
 
+    def parse(self):
+        global stack
+        self.merge(self.taints, copy.deepcopy(stack.taints()))
+
 class VarObj(Node):
     def __init__(self, name, taints):
         super().__init__()
@@ -61,7 +103,7 @@ class Literal(Node):
         self.value = node['value']
 
     def parse(self, pattern):
-        pass
+        super().parse()
 
 class Variable(Node):
 
@@ -70,6 +112,7 @@ class Variable(Node):
         self.name = node['name']
 
     def parse(self, pattern):
+        super().parse()
         if self.name not in vardict.keys():
             if self.name in pattern['sources']:
                 taint = Taint("t", self.name, [])
@@ -77,7 +120,7 @@ class Variable(Node):
             else:
                 vardict[self.name] = VarObj(self.name, [])
         
-        self.taints = copy.deepcopy(vardict[self.name].taints)
+        self.merge(self.taints, copy.deepcopy(vardict[self.name].taints))
 
 
 class Statement(Node):
@@ -104,8 +147,9 @@ class Statement(Node):
             raise ValueError("Shoud have never come here")
 
     def parse(self, pattern):
+        super().parse()
         self.expression.parse(pattern)
-        self.taints = self.expression.taints
+        self.merge(self.taints, self.expression.taints)
 
 
 class AssignmentExpression(Node):
@@ -123,19 +167,23 @@ class AssignmentExpression(Node):
         self.right = Statement(right)
 
     def parse(self, pattern):
-        global flows
+        global flows, stack
+        super().parse()
         self.left.parse(pattern)
         self.right.parse(pattern)
 
-        self.taints = self.right.taints
-        vardict[self.left.name].taints = copy.deepcopy(self.right.taints)
+        self.merge(self.taints, self.right.taints)
+        vardict[self.left.name].taints = copy.deepcopy(self.taints)
 
         if self.left.name in pattern['sinks']:
             for taint in self.taints:
+                v = None
                 if taint.state == "t":
-                    flows += [pattern['vulnerability'], taint.source, taint.sans, self.left.name]
+                    v = Vuln(pattern['vulnerability'], taint.source, taint.sans, self.left.name)
                 elif taint.state == "s":
-                    flows += [str(pattern['vulnerability']) + " -> Sanitized, but migh still be compromised", taint.source, taint.sans, self.left.name]
+                    v = Vuln(str(pattern['vulnerability']) + " -> Sanitized, but migh still be compromised", taint.source, taint.sans, self.left.name)
+                if v and v not in flows:
+                    flows += [v]
 
             
 class CallExpression(Node):
@@ -154,25 +202,29 @@ class CallExpression(Node):
             self.arguments += [Statement(arg)]
 
     def parse(self, pattern):
-        global flows
+        global flows, stack
+        super().parse()
         self.callee.parse(pattern)
-        self.taints = self.callee.taints
+        self.merge(self.taints, self.callee.taints)
 
         for arg in self.arguments:
             arg.parse(pattern)
-            if arg.state() == "t" or arg.state() == "s" and self.state() == "u":
-                self.merge(self.taints, arg.taints)
+            self.merge(self.taints, arg.taints)
 
-        if self.state() != "u" and self.callee.name in pattern['sanitizers'] and vardict[self.callee.name].state() != "t": 
+        if self.state() != "u" and self.callee.name in pattern['sanitizers'] and vardict[self.callee.name].state() != "t": #FIXME sanitize inside tainted block 
             self.sanitize(self.callee.name)
 
 
         if self.callee.name in pattern['sinks']:
             for taint in self.taints:
+                v = None
                 if taint.state == "t":
-                    flows += [pattern['vulnerability'], taint.source, taint.sans, self.callee.name]
+                    v = Vuln(pattern['vulnerability'], taint.source, taint.sans, self.callee.name)
                 elif taint.state == "s":
-                    flows += [str(pattern['vulnerability']) + " -> Sanitized, but migh still be compromised", taint.source, taint.sans, self.callee.name]
+                    v = Vuln(str(pattern['vulnerability']) + " -> Sanitized, but migh still be compromised", taint.source, taint.sans, self.callee.name)
+                if v and v not in flows:
+                    flows += [v]
+
 
 class BinaryExpression(Node):
 
@@ -186,6 +238,7 @@ class BinaryExpression(Node):
 
     def parse(self, pattern):
         global flows
+        super().parse()
         self.left.parse(pattern)
         self.right.parse(pattern)
 
@@ -201,18 +254,38 @@ class IfStatement(Node):
 
         self.test = Statement(test)
         self.consequent = Statement(consequent)
-        self.alternate = Statement(alternate)
+        if alternate != None:
+            self.alternate = Statement(alternate)
+        else:
+            self.alternate = None
 
     def parse(self, pattern):
-        pass
+        super().parse()
+        self.test.parse(pattern)
+
+        if self.test.state() != "u":
+            stack.push(self.test.taints)
+        
+        self.consequent.parse(pattern)
+        if self.alternate:
+            self.alternate.parse(pattern)
+
+        if self.test.state() != "u":
+            stack.pop()
+        
 
 class BlockStatement(Node):
 
     def __init__(self, node):
         super().__init__()
+        self.statements = []
+        for json in node['body']:
+            self.statements += [Statement(json)]
       
     def parse(self, pattern):
-        pass
+        super().parse()
+        for s in self.statements:
+            s.parse(pattern)
 
 filename = str(program.split(".")[0])
 
@@ -233,7 +306,6 @@ def analyseSlice(pattern_list, program_json):
     for pat in pattern_list:
         program = []
         for var_json in program_json['body']:
-            print("var: ",var_json, "\n\n")
             program += [Statement(var_json)]
         for p in program:
             p.parse(pat)
@@ -243,7 +315,11 @@ def analyseSlice(pattern_list, program_json):
         #print("bfin:", vardict['b'].name, vardict['b'].state())
         #print("dfin:", vardict['d'].name, vardict['d'].state())   
         vardict = {}
-    print(flows)
+    result = "[\n" + flows[0].toString()
+    for i in range(1, len(flows)):
+        result += ",\n\n" + flows[i].toString()
+    result += "\n]"
+    print(result)
 
 
 '''
@@ -254,5 +330,6 @@ f.close()
 '''
 
 
+stack = Stack()
 analyseSlice(pattern_list, program_json)
 
