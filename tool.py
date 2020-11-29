@@ -114,14 +114,20 @@ class Variable(Node):
     def parse(self, pattern):
         super().parse()
         if self.name not in vardict.keys():
-            if self.name in pattern['sources']:
-                taint = Taint("t", self.name, [])
+            match = self.match(self.name, pattern['sources'])
+            if match:
+                taint = Taint("t", match, [])
                 vardict[self.name] = VarObj(self.name, [taint])
             else:
                 vardict[self.name] = VarObj(self.name, [])
         
         self.merge(self.taints, copy.deepcopy(vardict[self.name].taints))
 
+    def match(self, name, sources):
+        for source in sources: 
+            if name == source[:len(name)]:
+                return source #FIXME return only works if pattern only has one source (document.cenas, document.cenas2 both have the same beginning)
+        return None
 
 class Statement(Node):
 
@@ -145,6 +151,8 @@ class Statement(Node):
             self.expression = BlockStatement(node)   
         elif node['type'] == "WhileStatement":
             self.expression = WhileStatement(node)   
+        elif node['type'] == "MemberExpression":
+            self.expression = MemberExpression(node)   
         else:
             raise ValueError("Shoud have never come here")
 
@@ -196,6 +204,11 @@ class CallExpression(Node):
 
         if callee['type'] == "Identifier": #FIXME can left be anything else?
             self.callee = Variable(callee)
+
+        elif callee['type'] == "MemberExpression":
+            
+            self.callee = MemberExpression(callee)
+
         else:
             raise ValueError("Shoud have never come here")
 
@@ -213,7 +226,7 @@ class CallExpression(Node):
             arg.parse(pattern)
             self.merge(self.taints, arg.taints)
 
-        if self.state() != "u" and self.callee.name in pattern['sanitizers'] and vardict[self.callee.name].state() != "t": #FIXME sanitize inside tainted block 
+        if self.state() != "u" and self.callee.name in pattern['sanitizers']: #and vardict[self.callee.name].state() != "t": #FIXME sanitize inside tainted block 
             self.sanitize(self.callee.name)
 
 
@@ -291,7 +304,7 @@ class BlockStatement(Node):
 
 
 
-class WhileStatement(Node):
+class WhileStatement(Node): #TODO
 
     def __init__(self, node):
         super().__init__()
@@ -313,6 +326,32 @@ class WhileStatement(Node):
         if self.test.state() != "u":
             stack.pop()
 
+
+class MemberExpression(Node): #TOCHECK
+
+    def __init__(self, node):
+        super().__init__()
+        obj = node['object']
+        prop = node['property']
+        
+        if obj['type'] == 'CallExpression':
+            self.obj = CallExpression(obj)
+        elif obj['type'] == 'MemberExpression':
+            self.obj = MemberExpression(obj)
+        elif obj['type'] == 'Identifier':
+            self.obj = Variable(obj)
+        else:
+            raise ValueError("Shoud have never come here")
+
+        self.name = self.obj.name + "." + prop['name'] #FIXME prop is always identifier
+
+    def parse(self, pattern):
+        global flows
+        super().parse()
+        self.obj.parse(pattern)
+        #self.prop.parse(pattern)
+
+        self.merge(self.taints, self.obj.taints)
 
 filename = str(program.split(".")[0])
 
