@@ -153,6 +153,8 @@ class Statement(Node):
             self.expression = WhileStatement(node)   
         elif node['type'] == "MemberExpression":
             self.expression = MemberExpression(node)   
+        elif node['type'] == "ArrayExpression":
+            self.expression = ArrayExpression(node)   
         else:
             raise ValueError("Shoud have never come here")
 
