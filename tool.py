@@ -159,6 +159,10 @@ class Statement(Node):
             self.expression = BinaryExpression(node)   
         elif node['type'] == "NewExpression": #FIXME check
             self.expression = CallExpression(node)   
+        elif node['type'] == "UnaryExpression": #FIXME check
+            self.expression = UnaryExpression(node)   
+        elif node['type'] == "UpdateExpression": #FIXME check
+            self.expression = UnaryExpression(node)   
         else:
             raise ValueError("Shoud have never come here")
 
@@ -263,6 +267,23 @@ class BinaryExpression(Node): #FIXME also accepting logicalExp ( ||, &&)
         self.right.parse(pattern)
 
         self.merge(self.right.taints,self.left.taints)
+
+class UnaryExpression(Node): #FIXME not tested
+
+    def __init__(self, node):
+        super().__init__()
+        argument = node['argument']
+        
+        self.argument = Statement(argument)
+
+    def parse(self, pattern):
+        global flows
+        super().parse()
+        self.argument.parse(pattern)
+        self.merge(self.taints, self.argument.taints)
+
+
+
 
 
 class ArrayExpression(Node): #FIXME not tested
