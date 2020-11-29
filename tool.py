@@ -125,7 +125,7 @@ class Variable(Node):
 
     def match(self, name, sources):
         for source in sources: 
-            if name == source[:len(name)]:
+            if name == source.split(".")[0]:
                 return source #FIXME return only works if pattern only has one source (document.cenas, document.cenas2 both have the same beginning)
         return None
 
@@ -171,6 +171,8 @@ class AssignmentExpression(Node):
         
         if left['type'] == "Identifier": #FIXME can left be anything else?
             self.left = Variable(left)
+        elif left['type'] == "MemberExpression":    
+            self.left = MemberExpression(left)
         else:
             raise ValueError("Shoud have never come here")
 
@@ -183,7 +185,7 @@ class AssignmentExpression(Node):
         self.right.parse(pattern)
 
         self.merge(self.taints, self.right.taints)
-        vardict[self.left.name].taints = copy.deepcopy(self.taints)
+        vardict[self.left.name].taints = copy.deepcopy(self.taints) #FIXME name of memberexpression
 
         if self.left.name in pattern['sinks']:
             for taint in self.taints:
@@ -191,7 +193,7 @@ class AssignmentExpression(Node):
                 if taint.state == "t":
                     v = Vuln(pattern['vulnerability'], taint.source, taint.sans, self.left.name)
                 elif taint.state == "s":
-                    v = Vuln(str(pattern['vulnerability']) + " -> Sanitized, but migh still be compromised", taint.source, taint.sans, self.left.name)
+                    v = Vuln(str(pattern['vulnerability']) + " -> Sanitized, but might still be compromised", taint.source, taint.sans, self.left.name)
                 if v and v not in flows:
                     flows += [v]
 
@@ -204,11 +206,8 @@ class CallExpression(Node):
 
         if callee['type'] == "Identifier": #FIXME can left be anything else?
             self.callee = Variable(callee)
-
-        elif callee['type'] == "MemberExpression":
-            
+        elif callee['type'] == "MemberExpression":   
             self.callee = MemberExpression(callee)
-
         else:
             raise ValueError("Shoud have never come here")
 
@@ -349,7 +348,6 @@ class MemberExpression(Node): #TOCHECK
         global flows
         super().parse()
         self.obj.parse(pattern)
-        #self.prop.parse(pattern)
 
         self.merge(self.taints, self.obj.taints)
 
@@ -376,7 +374,6 @@ def analyseSlice(pattern_list, program_json):
         for p in program:
             p.parse(pat)
 
-        #vardict = {}
         #print("afin:", vardict['a'].name, vardict['a'].state())
         #print("bfin:", vardict['b'].name, vardict['b'].state())
         #print("dfin:", vardict['d'].name, vardict['d'].state())   
