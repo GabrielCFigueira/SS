@@ -257,7 +257,25 @@ class BinaryExpression(Node):
         self.right.parse(pattern)
 
         self.merge(self.right.taints,self.left.taints)
-       
+
+
+class ArrayExpression(Node): #FIXME not tested
+
+    def __init__(self, node):
+        super().__init__()
+        elements = node['elements']
+        
+        for e in elements:
+            self.elements += [Statement(e)]
+
+
+    def parse(self, pattern):
+        global flows
+        super().parse()
+        for e in self.elements:
+            e.parse(pattern)
+            self.merge(self.taints, self.e.taints)
+
 class IfStatement(Node):
 
     def __init__(self, node):
