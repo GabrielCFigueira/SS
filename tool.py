@@ -143,6 +143,8 @@ class Statement(Node):
             self.expression = IfStatement(node)   
         elif node['type'] == "BlockStatement":
             self.expression = BlockStatement(node)   
+        elif node['type'] == "WhileStatement":
+            self.expression = WhileStatement(node)   
         else:
             raise ValueError("Shoud have never come here")
 
@@ -286,6 +288,31 @@ class BlockStatement(Node):
         super().parse()
         for s in self.statements:
             s.parse(pattern)
+
+
+
+class WhileStatement(Node):
+
+    def __init__(self, node):
+        super().__init__()
+        test = node['test']
+        body = node['body']
+
+        self.test = Statement(test)
+        self.body = Statement(body)
+
+    def parse(self, pattern):
+        super().parse()
+        self.test.parse(pattern)
+
+        if self.test.state() != "u":
+            stack.push(self.test.taints)
+        
+        self.body.parse(pattern)
+
+        if self.test.state() != "u":
+            stack.pop()
+
 
 filename = str(program.split(".")[0])
 
