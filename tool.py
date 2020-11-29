@@ -155,6 +155,8 @@ class Statement(Node):
             self.expression = MemberExpression(node)   
         elif node['type'] == "ArrayExpression":
             self.expression = ArrayExpression(node)   
+        elif node['type'] == "LogicalExpression":
+            self.expression = BinaryExpression(node)   
         else:
             raise ValueError("Shoud have never come here")
 
@@ -242,7 +244,7 @@ class CallExpression(Node):
                     flows += [v]
 
 
-class BinaryExpression(Node):
+class BinaryExpression(Node): #FIXME also accepting logicalExp ( ||, &&)
 
     def __init__(self, node):
         super().__init__()
