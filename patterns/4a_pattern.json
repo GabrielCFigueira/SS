@@ -12,5 +12,15 @@
   {"vulnerability": "[3] c -> e",
   "sources": ["c"],
   "sanitizers": ["f"],
+  "sinks": ["e"]},
+  
+  {"vulnerability": "[4] c -> e",
+  "sources": ["c"],
+  "sanitizers": ["f", "d"],
+  "sinks": ["e"]},
+
+  {"vulnerability": "[5] b -> e",
+  "sources": ["b"],
+  "sanitizers": ["f"],
   "sinks": ["e"]}
 ]
