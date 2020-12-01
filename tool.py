@@ -14,16 +14,26 @@ class Universe:
         self.vardict = {}
         self.stack = None
 
+    def mergeVardict(self, vardict):
+
+        for var in vardict.keys():
+            if var not in self.vardict:
+                self.vardict[var] = copy.deepcopy(vardict[var])
+            else:
+                for taint in vardict[var].taints:
+                    if taint not in self.vardict[var].taints:
+                        self.vardict[var].taints += [copy.deepcopy(taint)]
 
 
 class Program:
     def __init__(self, program_json, universe):
         self.statements = []
         self.universe = universe
-        json = program_json
+        self.json = program_json
 
-        for i in range(len(json['body'])):
-            self.statements += [Statement(json['body'][i], ['body', i], json, universe)]
+    def construct(self):
+        for i in range(len(self.json['body'])):
+            self.statements += [Statement(self.json['body'][i], ['body', i], self.json, self.universe)]
 
     def parse(self, pattern):
         for s in self.statements:
@@ -112,6 +122,9 @@ class VarObj(Node):#FIXME name varobj? useless
         super().__init__(None)
         self.name = name
         self.taints = taints
+
+    def __eq__(self, other):
+        return self.name == other.name
 
 
 class Literal(Node):
@@ -339,8 +352,10 @@ class IfStatement(Node):
             json['alternate'] = 'passed'
 
             node['alternate'] = 'passed'
-        
-            universe.programs += [Program(original_json, universe)]
+            
+            p = Program(original_json, universe)
+            universe.programs += [p]
+            p.construct()
 
         self.test = Statement(test, keys + ['test'], program_json, universe)
         
@@ -381,25 +396,81 @@ class BlockStatement(Node):
 
 class WhileStatement(Node): #TODO
 
-    def __init__(self, node, keys, program_json):
+    def __init__(self, node, keys, program_json, universe):
         super().__init__(universe)
         test = node['test']
         body = node['body']
+        self.node_json = copy.deepcopy(node)
 
-        self.test = Statement(test, keys + ['test'], program_json)
-        self.body = Statement(body, keys + ['body'], program_json)
+        original_json = copy.deepcopy(program_json)
+        json = original_json
+        for key in keys:
+            json = json[key]
+
+        json['consequent'] = None
+        json['alternate'] = "passed"
+        json['type'] = "IfStatement"
+        
+        p = Program(original_json, universe)
+        universe.programs += [p]
+        p.construct()
+    
 
     def parse(self, pattern):
         super().parse()
-        self.test.parse(pattern)
-
-        if self.test.state() != "u":
-            self.universe.stack.push(self.test.taints)
         
-        self.body.parse(pattern)
+        json = self.node_json
+        json['type'] = "IfStatement"
+        json['consequent'] = json['body']
+        json['alternate'] = "passed"
+        loops = 1
 
-        if self.test.state() != "u":
-            self.universe.stack.pop()
+        oldTainted = 0
+        oldSanitized = 0
+        
+        antevardict = copy.deepcopy(self.universe.vardict)
+        antestack = copy.deepcopy(self.universe.stack)
+
+        while True:
+            
+            uni = Universe()
+            uni.vardict = copy.deepcopy(antevardict)
+            uni.stack = copy.deepcopy(antestack)
+            
+            whilejson = {'body': []}
+            for i in range(loops):
+                whilejson['body'] += [copy.deepcopy(json)]
+            
+            p = Program(whilejson, uni)
+            uni.programs += [p]
+            p.construct()
+
+            taintedVariables = 0
+            sanitizedVariables = 0
+            for var in uni.vardict.keys():
+                state = "u"
+                for taint in uni.vardict[var].taints:
+                    state = "s"
+                    if taint.state == "t":
+                        taintedVariables += 1
+                        break
+                if state == "s":
+                    sanitizedVariables += 1
+            
+
+            
+            for program in uni.programs:
+                program.parse(pattern)
+
+            self.universe.mergeVardict(uni.vardict)
+            
+            if oldTainted >= taintedVariables and oldSanitized >= sanitizedVariables:
+                print(loops)
+                break
+
+            loops += 1
+            oldTainted = taintedVariables
+            oldSanitized = sanitizedVariables
 
 
 class MemberExpression(Node): #TOCHECK
@@ -447,7 +518,10 @@ def analyseSlice(pattern_list, program_json):
     universe.stack = Stack()
 
     for pat in pattern_list:
-        universe.programs += [Program(copy.deepcopy(program_json), universe)]
+        p = Program(copy.deepcopy(program_json), universe)
+        universe.programs += [p]
+        p.construct()
+
         for p in universe.programs:
             p.parse(pat)
             universe.vardict = {}
