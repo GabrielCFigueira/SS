@@ -445,6 +445,10 @@ class WhileStatement(Node): #TODO
             uni.programs += [p]
             p.construct()
 
+            
+            for program in uni.programs:
+                program.parse(pattern)
+
             taintedVariables = 0
             sanitizedVariables = 0
             for var in uni.vardict.keys():
@@ -457,10 +461,6 @@ class WhileStatement(Node): #TODO
                 if state == "s":
                     sanitizedVariables += 1
             
-
-            
-            for program in uni.programs:
-                program.parse(pattern)
 
             self.universe.mergeVardict(uni.vardict)
             
