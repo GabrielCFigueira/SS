@@ -5,19 +5,25 @@ import copy
 program = sys.argv[1]
 pattern = sys.argv[2]
 
-global vardict
-vardict = {}
 global flows
 flows = []
 
-global stack, programs
-programs = []
+class Universe:
+    def __init__(self):
+        self.programs = []
+        self.vardict = {}
+        self.stack = None
+
+
 
 class Program:
-    def __init__(self, json):
+    def __init__(self, program_json, universe):
         self.statements = []
+        self.universe = universe
+        json = program_json
+
         for i in range(len(json['body'])):
-            self.statements += [Statement(json['body'][i], ['body', i], json)]
+            self.statements += [Statement(json['body'][i], ['body', i], json, universe)]
 
     def parse(self, pattern):
         for s in self.statements:
@@ -75,7 +81,8 @@ class Stack:
 
 
 class Node:
-    def __init__(self):
+    def __init__(self, universe):
+        self.universe = universe
         self.taints = []
 
     def state(self):
@@ -97,20 +104,20 @@ class Node:
             t.setValues("s", t.source, t.sans + [function])
 
     def parse(self):
-        global stack
-        self.merge(self.taints, copy.deepcopy(stack.taints()))
+        self.merge(self.taints, copy.deepcopy(self.universe.stack.taints()))
 
-class VarObj(Node):
+
+class VarObj(Node):#FIXME name varobj? useless
     def __init__(self, name, taints):
-        super().__init__()
+        super().__init__(None)
         self.name = name
         self.taints = taints
 
 
 class Literal(Node):
 
-    def __init__(self, node, keys, program_json):
-        super().__init__()
+    def __init__(self, node, keys, program_json, universe):
+        super().__init__(universe)
         self.value = node['value']
 
     def parse(self, pattern):
@@ -118,21 +125,21 @@ class Literal(Node):
 
 class Variable(Node):
 
-    def __init__(self, node, keys, program_json):
-        super().__init__()
+    def __init__(self, node, keys, program_json, universe):
+        super().__init__(universe)
         self.name = node['name']
 
     def parse(self, pattern):
         super().parse()
-        if self.name not in vardict.keys():
+        if self.name not in self.universe.vardict.keys():
             match = self.match(self.name, pattern['sources'])
             if match:
                 taint = Taint("t", match, [])
-                vardict[self.name] = VarObj(self.name, [taint])
+                self.universe.vardict[self.name] = VarObj(self.name, [taint])
             else:
-                vardict[self.name] = VarObj(self.name, [])
+                self.universe.vardict[self.name] = VarObj(self.name, [])
         
-        self.merge(self.taints, copy.deepcopy(vardict[self.name].taints))
+        self.merge(self.taints, copy.deepcopy(self.universe.vardict[self.name].taints))
 
     def match(self, name, sources):
         for source in sources: 
@@ -142,38 +149,38 @@ class Variable(Node):
 
 class Statement(Node):
 
-    def __init__(self, node, keys, program_json):
-        super().__init__()
+    def __init__(self, node, keys, program_json, universe):
+        super().__init__(universe)
         if node['type'] == 'AssignmentExpression':
-            self.expression = AssignmentExpression(node, keys, program_json)
+            self.expression = AssignmentExpression(node, keys, program_json, universe)
         elif node['type'] == 'CallExpression':
-            self.expression = CallExpression(node, keys, program_json)
+            self.expression = CallExpression(node, keys, program_json, universe)
         elif node['type'] == "Identifier":
-            self.expression = Variable(node, keys, program_json)
+            self.expression = Variable(node, keys, program_json, universe)
         elif node['type'] == "Literal":
-            self.expression = Literal(node, keys, program_json)
+            self.expression = Literal(node, keys, program_json, universe)
         elif node['type'] == "BinaryExpression":
-            self.expression = BinaryExpression(node, keys, program_json)
+            self.expression = BinaryExpression(node, keys, program_json, universe)
         elif node['type'] == "ExpressionStatement":
-            self.expression = Statement(node['expression'], keys + ['expression'], program_json)
+            self.expression = Statement(node['expression'], keys + ['expression'], program_json, universe)
         elif node['type'] == "IfStatement":
-            self.expression = IfStatement(node, keys, program_json)
+            self.expression = IfStatement(node, keys, program_json, universe)
         elif node['type'] == "BlockStatement":
-            self.expression = BlockStatement(node, keys, program_json)
+            self.expression = BlockStatement(node, keys, program_json, universe)
         elif node['type'] == "WhileStatement":
-            self.expression = WhileStatement(node, keys, program_json)
+            self.expression = WhileStatement(node, keys, program_json, universe)
         elif node['type'] == "MemberExpression":
-            self.expression = MemberExpression(node, keys, program_json)
+            self.expression = MemberExpression(node, keys, program_json, universe)
         elif node['type'] == "ArrayExpression":
-            self.expression = ArrayExpression(node, keys, program_json)  
+            self.expression = ArrayExpression(node, keys, program_json, universe)  
         elif node['type'] == "LogicalExpression": #FIXME check
-            self.expression = BinaryExpression(node, keys, program_json)  
+            self.expression = BinaryExpression(node, keys, program_json, universe)  
         elif node['type'] == "NewExpression": #FIXME check
-            self.expression = CallExpression(node, keys, program_json)
+            self.expression = CallExpression(node, keys, program_json, universe)
         elif node['type'] == "UnaryExpression": #FIXME check
-            self.expression = UnaryExpression(node, keys, program_json)
+            self.expression = UnaryExpression(node, keys, program_json, universe)
         elif node['type'] == "UpdateExpression": #FIXME check
-            self.expression = UnaryExpression(node, keys, program_json)
+            self.expression = UnaryExpression(node, keys, program_json, universe)
         else:
             raise ValueError("Shoud have never come here")
 
@@ -185,28 +192,28 @@ class Statement(Node):
 
 class AssignmentExpression(Node):
 
-    def __init__(self, node, keys, program_json):
-        super().__init__()
+    def __init__(self, node, keys, program_json, universe):
+        super().__init__(universe)
         left = node['left']
         right = node['right']
         
         if left['type'] == "Identifier": #FIXME can left be anything else?
-            self.left = Variable(left, keys + ['left'], program_json)
+            self.left = Variable(left, keys + ['left'], program_json, universe)
         elif left['type'] == "MemberExpression":    
-            self.left = MemberExpression(left, keys + ['left'], program_json)
+            self.left = MemberExpression(left, keys + ['left'], program_json, universe)
         else:
             raise ValueError("Shoud have never come here")
 
-        self.right = Statement(right, keys + ['right'], program_json)
+        self.right = Statement(right, keys + ['right'], program_json, universe)
 
     def parse(self, pattern):
-        global flows, stack
+        global flows
         super().parse()
         self.left.parse(pattern)
         self.right.parse(pattern)
 
         self.merge(self.taints, self.right.taints)
-        vardict[self.left.name].taints = copy.deepcopy(self.taints) #FIXME name of memberexpression
+        self.universe.vardict[self.left.name].taints = copy.deepcopy(self.taints) #FIXME name of memberexpression
 
         if self.left.name in pattern['sinks']:
             for taint in self.taints:
@@ -221,23 +228,23 @@ class AssignmentExpression(Node):
             
 class CallExpression(Node): #FIXME: also accepting NewExpressions
 
-    def __init__(self, node, keys, program_json):
-        super().__init__()
+    def __init__(self, node, keys, program_json, universe):
+        super().__init__(universe)
         callee = node['callee']
 
         if callee['type'] == "Identifier": #FIXME can left be anything else?
-            self.callee = Variable(callee, keys + ['callee'], program_json)
+            self.callee = Variable(callee, keys + ['callee'], program_json, universe)
         elif callee['type'] == "MemberExpression":
-            self.callee = MemberExpression(callee, keys + ['callee'], program_json)
+            self.callee = MemberExpression(callee, keys + ['callee'], program_json, universe)
         else:
             raise ValueError("Shoud have never come here")
 
         self.arguments = []
         for i in range(len(node['arguments'])):
-            self.arguments += [Statement(node['arguments'][i], keys + ['arguments', i], program_json)]
+            self.arguments += [Statement(node['arguments'][i], keys + ['arguments', i], program_json, universe)]
 
     def parse(self, pattern):
-        global flows, stack
+        global flows
         super().parse()
         self.callee.parse(pattern)
         self.merge(self.taints, self.callee.taints)
@@ -246,7 +253,7 @@ class CallExpression(Node): #FIXME: also accepting NewExpressions
             arg.parse(pattern)
             self.merge(self.taints, arg.taints)
 
-        if self.state() != "u" and self.callee.name in pattern['sanitizers']: #and vardict[self.callee.name].state() != "t": #FIXME sanitize inside tainted block 
+        if self.state() != "u" and self.callee.name in pattern['sanitizers']: #and self.universe.vardict[self.callee.name].state() != "t": #FIXME sanitize inside tainted block 
             self.sanitize(self.callee.name)
 
 
@@ -263,13 +270,13 @@ class CallExpression(Node): #FIXME: also accepting NewExpressions
 
 class BinaryExpression(Node): #FIXME also accepting logicalExp ( ||, &&)
 
-    def __init__(self, node, keys, program_json):
-        super().__init__()
+    def __init__(self, node, keys, program_json, universe):
+        super().__init__(universe)
         left = node['left']
         right = node['right']
         
-        self.left = Statement(left, keys + ['left'], program_json)
-        self.right = Statement(right, keys + ['right'], program_json)
+        self.left = Statement(left, keys + ['left'], program_json, universe)
+        self.right = Statement(right, keys + ['right'], program_json, universe)
 
     def parse(self, pattern):
         global flows
@@ -281,11 +288,11 @@ class BinaryExpression(Node): #FIXME also accepting logicalExp ( ||, &&)
 
 class UnaryExpression(Node): #FIXME not tested
 
-    def __init__(self, node, keys, program_json):
-        super().__init__()
+    def __init__(self, node, keys, program_json, universe):
+        super().__init__(universe)
         argument = node['argument']
         
-        self.argument = Statement(argument, keys + ['argument'], program_json)
+        self.argument = Statement(argument, keys + ['argument'], program_json, universe)
 
     def parse(self, pattern):
         global flows
@@ -299,12 +306,12 @@ class UnaryExpression(Node): #FIXME not tested
 
 class ArrayExpression(Node): #FIXME not tested
 
-    def __init__(self, node, keys, program_json):
-        super().__init__()
+    def __init__(self, node, keys, program_json, universe):
+        super().__init__(universe)
         elements = node['elements']
         
         for i in range(len(elements)):
-            self.elements += [Statement(elements[i], keys + ['elements', i], program_json)]
+            self.elements += [Statement(elements[i], keys + ['elements', i], program_json, universe)]
 
 
     def parse(self, pattern):
@@ -316,9 +323,8 @@ class ArrayExpression(Node): #FIXME not tested
 
 class IfStatement(Node):
 
-    def __init__(self, node, keys, program_json):
-        global programs
-        super().__init__()
+    def __init__(self, node, keys, program_json, universe):
+        super().__init__(universe)
         test = node['test']
         consequent = node['consequent']
         alternate = node['alternate']
@@ -334,12 +340,12 @@ class IfStatement(Node):
 
             node['alternate'] = 'passed'
         
-            programs += [Program(original_json)]
+            universe.programs += [Program(original_json, universe)]
 
-        self.test = Statement(test, keys + ['test'], program_json)
+        self.test = Statement(test, keys + ['test'], program_json, universe)
         
         if consequent:
-            self.consequent = Statement(consequent, keys + ['consequent'], program_json)
+            self.consequent = Statement(consequent, keys + ['consequent'], program_json, universe)
         else:
             self.consequent = None
 
@@ -350,21 +356,21 @@ class IfStatement(Node):
 
         if self.consequent:
             if self.test.state() != "u":
-                stack.push(self.test.taints)
+                self.universe.stack.push(self.test.taints)
             
             self.consequent.parse(pattern)
 
             if self.test.state() != "u":
-                stack.pop()
+                self.universe.stack.pop()
         
 
 class BlockStatement(Node):
 
-    def __init__(self, node, keys, program_json):
-        super().__init__()
+    def __init__(self, node, keys, program_json, universe):
+        super().__init__(universe)
         self.statements = []
         for i in range(len(node['body'])):
-            self.statements += [Statement(node['body'][i], keys + ['body', i], program_json)]
+            self.statements += [Statement(node['body'][i], keys + ['body', i], program_json, universe)]
       
     def parse(self, pattern):
         super().parse()
@@ -376,7 +382,7 @@ class BlockStatement(Node):
 class WhileStatement(Node): #TODO
 
     def __init__(self, node, keys, program_json):
-        super().__init__()
+        super().__init__(universe)
         test = node['test']
         body = node['body']
 
@@ -388,27 +394,27 @@ class WhileStatement(Node): #TODO
         self.test.parse(pattern)
 
         if self.test.state() != "u":
-            stack.push(self.test.taints)
+            self.universe.stack.push(self.test.taints)
         
         self.body.parse(pattern)
 
         if self.test.state() != "u":
-            stack.pop()
+            self.universe.stack.pop()
 
 
 class MemberExpression(Node): #TOCHECK
 
-    def __init__(self, node, keys, program_json):
-        super().__init__()
+    def __init__(self, node, keys, program_json, universe):
+        super().__init__(universe)
         obj = node['object']
         prop = node['property']
         
         if obj['type'] == 'CallExpression':
-            self.obj = CallExpression(obj, keys + ['object'], program_json)
+            self.obj = CallExpression(obj, keys + ['object'], program_json, universe)
         elif obj['type'] == 'MemberExpression':
-            self.obj = MemberExpression(obj, keys + ['object'], program_json)
+            self.obj = MemberExpression(obj, keys + ['object'], program_json, universe)
         elif obj['type'] == 'Identifier':
-            self.obj = Variable(obj, keys + ['object'], program_json)
+            self.obj = Variable(obj, keys + ['object'], program_json, universe)
         else:
             raise ValueError("Shoud have never come here")
 
@@ -436,13 +442,16 @@ program_json = json.loads(program_str)
 
 
 def analyseSlice(pattern_list, program_json):
-    global vardict, programs
+
+    universe = Universe()
+    universe.stack = Stack()
+
     for pat in pattern_list:
-        programs += [Program(copy.deepcopy(program_json))]
-        for p in programs:
+        universe.programs += [Program(copy.deepcopy(program_json), universe)]
+        for p in universe.programs:
             p.parse(pat)
-            vardict = {}
-        programs = []
+            universe.vardict = {}
+        universe.programs = []
 
     result = "[\n" + flows[0].toString()
     for i in range(1, len(flows)):
@@ -454,6 +463,5 @@ def analyseSlice(pattern_list, program_json):
     #print("bfin:", vardict['b'].name, vardict['b'].state())
     #print("dfin:", vardict['d'].name, vardict['d'].state())   
 
-stack = Stack()
 analyseSlice(pattern_list, program_json)
 
