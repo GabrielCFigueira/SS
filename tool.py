@@ -95,6 +95,7 @@ class Node:
     def __init__(self, universe):
         self.universe = universe
         self.taints = []
+        self.sink = None
 
     def state(self):
         state = "u"
@@ -152,8 +153,13 @@ class Variable(Node):
                 self.universe.vardict[self.name] = VarObj(self.name, [taint])
             else:
                 self.universe.vardict[self.name] = VarObj(self.name, [])
-        
+
+            #assuming that a source is not a sink at the same time
+            self.universe.vardict[self.name].sink = self.match(self.name, pattern['sinks'])
+
+        self.sink = self.universe.vardict[self.name].sink
         self.merge(self.taints, copy.deepcopy(self.universe.vardict[self.name].taints))
+
 
     def match(self, name, sources):
         for source in sources: 
@@ -207,6 +213,7 @@ class Statement(Node):
         super().parse()
         if self.expression:
             self.expression.parse(pattern)
+            self.sink = self.expression.sink
             self.merge(self.taints, self.expression.taints)
 
 
@@ -235,15 +242,18 @@ class AssignmentExpression(Node):
         self.merge(self.taints, self.right.taints)
         self.universe.vardict[self.left.name].taints = copy.deepcopy(self.taints) #FIXME name of memberexpression
 
-        if self.left.name in pattern['sinks']:
+        if self.left.sink:
             for taint in self.taints:
                 v = None
                 if taint.state == "t":
-                    v = Vuln(pattern['vulnerability'], taint.source, taint.sans, self.left.name)
+                    v = Vuln(pattern['vulnerability'], taint.source, taint.sans, self.left.sink)
                 elif taint.state == "s":
-                    v = Vuln(str(pattern['vulnerability']) + " -> Sanitized, but might still be compromised", taint.source, taint.sans, self.left.name)
+                    v = Vuln(str(pattern['vulnerability']) + " -> Sanitized, but might still be compromised", taint.source, taint.sans, self.left.sink)
                 if v and v not in flows:
                     flows += [v]
+
+        self.sink = self.right.sink
+        self.universe.vardict[self.left.name].sink = self.sink #FIXME name of memberexpression
 
             
 class CallExpression(Node): #FIXME: also accepting NewExpressions
@@ -265,7 +275,6 @@ class CallExpression(Node): #FIXME: also accepting NewExpressions
 
     def parse(self, pattern):
         global flows
-        super().parse()
         self.callee.parse(pattern)
         self.merge(self.taints, self.callee.taints)
 
@@ -273,17 +282,18 @@ class CallExpression(Node): #FIXME: also accepting NewExpressions
             arg.parse(pattern)
             self.merge(self.taints, arg.taints)
 
-        if self.state() != "u" and self.callee.name in pattern['sanitizers']: #and self.universe.vardict[self.callee.name].state() != "t": #FIXME sanitize inside tainted block 
+        if self.state() != "u" and self.callee.name in pattern['sanitizers'] and self.universe.vardict[self.callee.name].state() != "t": #FIXME sanitize inside tainted block 
             self.sanitize(self.callee.name)
 
-
-        if self.callee.name in pattern['sinks']:
+        super().parse() #sanitization does not save if implicit leaks
+        
+        if self.callee.sink:
             for taint in self.taints:
                 v = None
                 if taint.state == "t":
-                    v = Vuln(pattern['vulnerability'], taint.source, taint.sans, self.callee.name)
+                    v = Vuln(pattern['vulnerability'], taint.source, taint.sans, self.callee.sink)
                 elif taint.state == "s":
-                    v = Vuln(str(pattern['vulnerability']) + " -> Sanitized, but might still be compromised", taint.source, taint.sans, self.callee.name)
+                    v = Vuln(str(pattern['vulnerability']) + " -> Sanitized, but might still be compromised", taint.source, taint.sans, self.callee.sink)
                 if v and v not in flows:
                     flows += [v]
 
@@ -320,6 +330,8 @@ class UnaryExpression(Node): #FIXME not tested
         self.argument.parse(pattern)
         self.merge(self.taints, self.argument.taints)
 
+        #FIXME propagate sink?
+
 
 
 
@@ -340,6 +352,8 @@ class ArrayExpression(Node): #FIXME not tested
         for e in self.elements:
             e.parse(pattern)
             self.merge(self.taints, self.e.taints)
+
+        #FIXME sink?
 
 class IfStatement(Node):
 
@@ -504,6 +518,7 @@ class MemberExpression(Node): #TOCHECK
         global flows
         super().parse()
         self.obj.parse(pattern)
+        self.sink = self.obj.sink
 
         self.merge(self.taints, self.obj.taints)
 
@@ -535,11 +550,14 @@ def analyseSlice(pattern_list, program_json):
             p.parse(pat)
             universe.vardict = {}
         universe.programs = []
-
-    result = "[\n" + flows[0].toString()
-    for i in range(1, len(flows)):
-        result += ",\n\n" + flows[i].toString()
-    result += "\n]"
+    
+    result = "["
+    if flows:
+        result += "\n" + flows[0].toString()
+        for i in range(1, len(flows)):
+            result += ",\n\n" + flows[i].toString()
+        result += "\n"
+    result += "]"
     print(result)
 
     #print("afin:", vardict['a'].name, vardict['a'].state())
