@@ -13,6 +13,7 @@ class Universe:
         self.programs = []
         self.vardict = {}
         self.stack = None
+        self.breakloop = False
 
     def mergeVardict(self, vardict):
 
@@ -164,7 +165,9 @@ class Statement(Node):
 
     def __init__(self, node, keys, program_json, universe):
         super().__init__(universe)
-        if node['type'] == 'AssignmentExpression':
+        if universe.breakloop:
+            self.expression = None
+        elif node['type'] == 'AssignmentExpression':
             self.expression = AssignmentExpression(node, keys, program_json, universe)
         elif node['type'] == 'CallExpression':
             self.expression = CallExpression(node, keys, program_json, universe)
@@ -194,13 +197,17 @@ class Statement(Node):
             self.expression = UnaryExpression(node, keys, program_json, universe)
         elif node['type'] == "UpdateExpression": #FIXME check
             self.expression = UnaryExpression(node, keys, program_json, universe)
+        elif node['type'] == "BreakStatement": #FIXME check
+            universe.breakloop = True
+            self.expression = None
         else:
             raise ValueError("Shoud have never come here")
 
     def parse(self, pattern):
         super().parse()
-        self.expression.parse(pattern)
-        self.merge(self.taints, self.expression.taints)
+        if self.expression:
+            self.expression.parse(pattern)
+            self.merge(self.taints, self.expression.taints)
 
 
 class AssignmentExpression(Node):
@@ -454,6 +461,7 @@ class WhileStatement(Node): #TODO
             
             for program in uni.programs:
                 program.parse(pattern)
+                uni.breakloop = False
 
             sanitizedVariables = 0
             for var in uni.vardict.keys():
