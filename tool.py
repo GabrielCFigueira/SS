@@ -425,11 +425,17 @@ class WhileStatement(Node): #TODO
         json['alternate'] = "passed"
         loops = 1
 
-        oldTainted = 0
-        oldSanitized = 0
         
         antevardict = copy.deepcopy(self.universe.vardict)
         antestack = copy.deepcopy(self.universe.stack)
+        
+        varlist = []
+        for var in self.universe.vardict:
+            if self.universe.vardict[var].state() == "t":
+                varlist += [self.universe.vardict[var].name]
+        
+        allTimeTainted = len(varlist)
+        oldSanitized = 0
 
         while True:
             
@@ -449,28 +455,23 @@ class WhileStatement(Node): #TODO
             for program in uni.programs:
                 program.parse(pattern)
 
-            taintedVariables = 0
             sanitizedVariables = 0
             for var in uni.vardict.keys():
-                state = "u"
-                for taint in uni.vardict[var].taints:
-                    state = "s"
-                    if taint.state == "t":
-                        taintedVariables += 1
-                        break
-                if state == "s":
+                if uni.vardict[var].state() == "t":
+                    if var not in varlist:
+                        varlist += [var]
+                elif uni.vardict[var].state() == "s":
                     sanitizedVariables += 1
             
 
             self.universe.mergeVardict(uni.vardict)
             
-            if oldTainted >= taintedVariables and oldSanitized >= sanitizedVariables:
-                print(loops)
+            if oldSanitized >= sanitizedVariables and len(varlist) == allTimeTainted:
                 break
 
             loops += 1
-            oldTainted = taintedVariables
             oldSanitized = sanitizedVariables
+            allTimeTainted = len(varlist)
 
 
 class MemberExpression(Node): #TOCHECK
