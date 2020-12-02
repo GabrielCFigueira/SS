@@ -206,6 +206,11 @@ class Statement(Node):
         elif node['type'] == "BreakStatement": #FIXME check
             universe.breakloop = True
             self.expression = None
+        elif node['type'] == "SequenceExpression": #FIXME check
+            self.expression = SequenceExpression(node, keys, program_json, universe)
+       
+        elif node['type'] == "ForStatement": #FIXME check
+            self.expression = ForStatement(node, keys, program_json, universe)
         else:
             raise ValueError("Shoud have never come here")
 
@@ -355,6 +360,24 @@ class ArrayExpression(Node): #FIXME not tested
 
         #FIXME sink?
 
+class SequenceExpression(Node): #FIXME not tested
+
+    def __init__(self, node, keys, program_json, universe):
+        super().__init__(universe)
+        expressions = node['expressions']
+        
+        for i in range(len(expressions)):
+            self.elements += [Statement(elements[i], keys + ['expressions', i], program_json, universe)]
+
+
+    def parse(self, pattern):
+        global flows
+        super().parse()
+        for e in self.expressions:
+            e.parse(pattern)
+            self.merge(self.taints, self.e.taints)
+
+        #FIXME sink?
 class IfStatement(Node):
 
     def __init__(self, node, keys, program_json, universe):
@@ -494,6 +517,15 @@ class WhileStatement(Node): #TODO
             loops += 1
             oldSanitized = sanitizedVariables
             allTimeTainted = len(varlist)
+
+class ForStatement(Node):
+    def __init__(self, node, keys, program_json, universe):
+        super().__init__(universe) 
+        init = node['init']
+        test = node['test']
+        body = node['body']
+        upg = node['upgrade']
+        self.node_json = copy.deepcopy(node)
 
 
 class MemberExpression(Node): #TOCHECK
