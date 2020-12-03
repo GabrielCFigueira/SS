@@ -288,7 +288,26 @@ class VariableDeclarator(Node):
         self.statement.parse(pattern)
 
 
-            
+
+class VariableDeclaration(Node): #FIXME not tested
+
+    def __init__(self, node, keys, program_json, universe):
+        super().__init__(universe)
+        declarations = node['declarations']
+        self.declarations = []
+        
+        for i in range(len(declarations)):
+            self.declarations += [Statement(declarations[i], keys + ['declarations', i], program_json, universe)]
+
+
+    def parse(self, pattern):
+        global flows
+        super().parse()
+        for d in self.declarations:
+            d.parse(pattern)
+            ##self.merge(self.taints, d.taints)
+
+
 class CallExpression(Node): #FIXME: also accepting NewExpressions
 
     def __init__(self, node, keys, program_json, universe):
