@@ -211,6 +211,10 @@ class Statement(Node):
        
         elif node['type'] == "ForStatement": #FIXME check
             self.expression = ForStatement(node, keys, program_json, universe)
+        elif node['type'] == "VariableDeclarator": #FIXME check
+            self.expression = VariableDeclarator(node, keys, program_json, universe)
+        elif node['type'] == "VariableDeclaration": #FIXME check
+            self.expression = VariableDeclaration(node, keys, program_json, universe)
         else:
             raise ValueError("Shoud have never come here")
 
@@ -259,6 +263,30 @@ class AssignmentExpression(Node):
 
         self.sink = self.right.sink
         self.universe.vardict[self.left.name].sink = self.sink #FIXME name of memberexpression
+
+
+class VariableDeclarator(Node):
+
+    def __init__(self, node, keys, program_json, universe):
+        super().__init__(universe)
+        identifier = node['id']
+        init = node['init']
+        self.statement = None
+
+        if init:
+            json = node
+            json['left'] = json['id'] 
+            json['right'] = json['init'] 
+            json['type'] = "AssignmentExpression" 
+
+            self.statement = AssignmentExpression(json, keys, program_json, universe)
+        else:
+            self.statement = Variable(identifier, keys + ['id'], program_json, universe)
+
+    def parse(self, pattern):
+        super().parse()
+        self.statement.parse(pattern)
+
 
             
 class CallExpression(Node): #FIXME: also accepting NewExpressions
