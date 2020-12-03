@@ -1,5 +1,5 @@
 a=b('nis');
-while (true) {
+for (i=0;i<1000;i++) {
     c=a;
     break;
     c=a;

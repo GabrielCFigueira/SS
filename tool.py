@@ -346,6 +346,7 @@ class ArrayExpression(Node): #FIXME not tested
     def __init__(self, node, keys, program_json, universe):
         super().__init__(universe)
         elements = node['elements']
+        self.elements = []
         
         for i in range(len(elements)):
             self.elements += [Statement(elements[i], keys + ['elements', i], program_json, universe)]
@@ -356,7 +357,7 @@ class ArrayExpression(Node): #FIXME not tested
         super().parse()
         for e in self.elements:
             e.parse(pattern)
-            self.merge(self.taints, self.e.taints)
+            self.merge(self.taints, e.taints)
 
         #FIXME sink?
 
@@ -365,9 +366,10 @@ class SequenceExpression(Node): #FIXME not tested
     def __init__(self, node, keys, program_json, universe):
         super().__init__(universe)
         expressions = node['expressions']
+        self.expressions = []
         
         for i in range(len(expressions)):
-            self.elements += [Statement(elements[i], keys + ['expressions', i], program_json, universe)]
+            self.expressions += [Statement(expressions[i], keys + ['expressions', i], program_json, universe)]
 
 
     def parse(self, pattern):
@@ -375,7 +377,7 @@ class SequenceExpression(Node): #FIXME not tested
         super().parse()
         for e in self.expressions:
             e.parse(pattern)
-            self.merge(self.taints, self.e.taints)
+            self.merge(self.taints, e.taints)
 
         #FIXME sink?
 class IfStatement(Node):
@@ -524,9 +526,23 @@ class ForStatement(Node):
         init = node['init']
         test = node['test']
         body = node['body']
-        upg = node['upgrade']
+        update = node['update']
         self.node_json = copy.deepcopy(node)
 
+        #original_json = copy.deepcopy(program_json)
+        #json = original_json
+        json = program_json
+        for key in keys:
+            json = json[key]
+
+        json['test'] = {"type": "SequenceExpression", "expressions": [json['init'], json['test'], json['update']]} 
+        json['type'] = "WhileStatement"
+      
+        self.statement = WhileStatement(json, keys, program_json, universe)
+
+    def parse(self, pattern):
+        super().parse()
+        self.statement.parse(pattern)
 
 class MemberExpression(Node): #TOCHECK
 
