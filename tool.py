@@ -308,6 +308,26 @@ class VariableDeclaration(Node): #FIXME not tested
             ##self.merge(self.taints, d.taints)
 
 
+class ConditionalExpression(Node):
+
+    def __init__(self, node, keys, program_json, universe):
+        super().__init__(universe) 
+        test = node['test']
+        consequent = node['consequent']
+        alternate = node['alternate']
+
+
+        node['consequent'] = {"type": "BlockStatement", "body": [node['consequent']]} 
+        node['alternate'] = {"type": "BlockStatement", "body": [node['alternate']]} 
+        node['type'] = "IfStatement"
+      
+        self.statement = IfStatement(node, keys, program_json, universe)
+
+    def parse(self, pattern):
+        super().parse()
+        self.statement.parse(pattern)
+
+
 class CallExpression(Node): #FIXME: also accepting NewExpressions
 
     def __init__(self, node, keys, program_json, universe):
