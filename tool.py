@@ -633,8 +633,11 @@ class MemberExpression(Node):
             self.obj = Variable(obj, keys + ['object'], program_json, universe)
         else:
             raise ValueError("Shoud have never come here")
-
-        self.name = self.obj.name + "." + prop['name'] #assuming prop is always identifier
+        
+        if prop['type'] == "Identifier":
+            self.name = self.obj.name + "." + prop['name'] #assuming prop is always identifier
+        else:
+            self.name = self.obj.name
 
     def parse(self, pattern):
         global flows
