@@ -1,0 +1,6 @@
+[
+  {"vulnerability": "b -> a",
+  "sources": ["b"],
+  "sanitizers": [],
+  "sinks": ["a"]}
+]

@@ -203,18 +203,20 @@ class Statement(Node):
             self.expression = UnaryExpression(node, keys, program_json, universe)
         elif node['type'] == "UpdateExpression": #FIXME check
             self.expression = UnaryExpression(node, keys, program_json, universe)
-        elif node['type'] == "BreakStatement": #FIXME check
+        elif node['type'] == "BreakStatement":
             universe.breakloop = True
             self.expression = None
         elif node['type'] == "SequenceExpression": #FIXME check
             self.expression = SequenceExpression(node, keys, program_json, universe)
        
-        elif node['type'] == "ForStatement": #FIXME check
+        elif node['type'] == "ForStatement":
             self.expression = ForStatement(node, keys, program_json, universe)
         elif node['type'] == "VariableDeclarator": #FIXME check
             self.expression = VariableDeclarator(node, keys, program_json, universe)
         elif node['type'] == "VariableDeclaration": #FIXME check
             self.expression = VariableDeclaration(node, keys, program_json, universe)
+        elif node['type'] == "ConditionalExpression": #FIXME check
+            self.expression = ConditionalExpression(node, keys, program_json, universe)
         else:
             raise ValueError("Shoud have never come here")
 
@@ -326,6 +328,7 @@ class ConditionalExpression(Node):
     def parse(self, pattern):
         super().parse()
         self.statement.parse(pattern)
+        self.merge(self.taints, self.statement.taints)
 
 
 class CallExpression(Node): #FIXME: also accepting NewExpressions
@@ -402,11 +405,6 @@ class UnaryExpression(Node): #FIXME not tested
         self.argument.parse(pattern)
         self.merge(self.taints, self.argument.taints)
 
-        #FIXME propagate sink?
-
-
-
-
 
 class ArrayExpression(Node): #FIXME not tested
 
@@ -426,7 +424,6 @@ class ArrayExpression(Node): #FIXME not tested
             e.parse(pattern)
             self.merge(self.taints, e.taints)
 
-        #FIXME sink?
 
 class SequenceExpression(Node): #FIXME not tested
 
@@ -446,7 +443,6 @@ class SequenceExpression(Node): #FIXME not tested
             e.parse(pattern)
             self.merge(self.taints, e.taints)
 
-        #FIXME sink?
 class IfStatement(Node):
 
     def __init__(self, node, keys, program_json, universe):
@@ -481,6 +477,7 @@ class IfStatement(Node):
     def parse(self, pattern):
         super().parse()
         self.test.parse(pattern)
+        self.merge(self.taints, self.test.taints)
 
         if self.consequent:
             if self.test.state() != "u":
@@ -490,6 +487,8 @@ class IfStatement(Node):
 
             if self.test.state() != "u":
                 self.universe.stack.pop()
+
+            self.merge(self.taints, self.consequent.taints)
         
 
 class BlockStatement(Node):
@@ -504,6 +503,7 @@ class BlockStatement(Node):
         super().parse()
         for s in self.statements:
             s.parse(pattern)
+            self.merge(self.taints, s.taints)
 
 
 
