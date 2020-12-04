@@ -1,0 +1,73 @@
+[
+    {"vulnerability": "b -> a",
+    "sources": ["b"],
+    "sanitizers": [],
+    "sinks": ["a"]},
+
+    {"vulnerability": "b -> a",
+    "sources": ["i"],
+    "sanitizers": [],
+    "sinks": ["a"]},
+
+    {"vulnerability": "b -> a",
+    "sources": ["b"],
+    "sanitizers": [],
+    "sinks": ["f"]},
+
+    {"vulnerability": "c -> a",
+    "sources": ["c"],
+    "sanitizers": [],
+    "sinks": ["a"]},
+
+    {"vulnerability": "c -> a",
+    "sources": ["c"],
+    "sanitizers": ["sans"],
+    "sinks": ["a"]},
+
+    {"vulnerability": "c -> a",
+    "sources": ["c"],
+    "sanitizers": ["sans"],
+    "sinks": ["f"]},
+
+    {"vulnerability": "c -> a",
+    "sources": ["i"],
+    "sanitizers": ["sans"],
+    "sinks": ["f"]},
+
+    {"vulnerability": "c -> a",
+    "sources": ["i"],
+    "sanitizers": [],
+    "sinks": ["f"]},
+
+    {"vulnerability": "c -> a",
+    "sources": ["c"],
+    "sanitizers": ["sans"],
+    "sinks": ["f"]},
+
+    {"vulnerability": "i -> b,c",
+    "sources": ["i"],
+    "sanitizers": [""],
+    "sinks": ["a"]},
+
+    {"vulnerability": "i -> b,c",
+    "sources": ["i"],
+    "sanitizers": ["sans"],
+    "sinks": ["a"]},
+
+    {"vulnerability": "i -> b,c",
+    "sources": ["i"],
+    "sanitizers": ["sans"],
+    "sinks": ["f"]},
+
+    {"vulnerability": "i -> b,c",
+    "sources": ["i"],
+    "sanitizers": [],
+    "sinks": ["f"]},
+
+    {"vulnerability": "i -> b,c",
+    "sources": ["i"],
+    "sanitizers": ["sans"],
+    "sinks": ["c"]}
+
+]
+  
