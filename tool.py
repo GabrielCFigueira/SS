@@ -201,7 +201,7 @@ class Statement(Node):
             self.expression = CallExpression(node, keys, program_json, universe)
         elif node['type'] == "UnaryExpression": #FIXME check
             self.expression = UnaryExpression(node, keys, program_json, universe)
-        elif node['type'] == "UpdateExpression": #FIXME check
+        elif node['type'] == "UpdateExpression":
             self.expression = UnaryExpression(node, keys, program_json, universe)
         elif node['type'] == "BreakStatement":
             universe.breakloop = True
