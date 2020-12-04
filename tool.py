@@ -167,6 +167,10 @@ class Variable(Node):
                 return source #FIXME return only works if pattern only has one source (document.cenas, document.cenas2 both have the same beginning)
         return None
 
+    def rootName(self):
+        return self.name
+
+
 class Statement(Node):
 
     def __init__(self, node, keys, program_json, universe):
@@ -237,7 +241,7 @@ class AssignmentExpression(Node):
         
         if left['type'] == "Identifier": #FIXME can left be anything else?
             self.left = Variable(left, keys + ['left'], program_json, universe)
-        elif left['type'] == "MemberExpression":    
+        elif left['type'] == "MemberExpression":
             self.left = MemberExpression(left, keys + ['left'], program_json, universe)
         else:
             raise ValueError("Shoud have never come here")
@@ -251,7 +255,7 @@ class AssignmentExpression(Node):
         self.right.parse(pattern)
 
         self.merge(self.taints, self.right.taints)
-        self.universe.vardict[self.left.name].taints = copy.deepcopy(self.taints) #FIXME name of memberexpression
+        self.universe.vardict[self.left.rootName()].taints = copy.deepcopy(self.taints)
 
         if self.left.sink:
             for taint in self.taints:
@@ -264,7 +268,8 @@ class AssignmentExpression(Node):
                     flows += [v]
 
         self.sink = self.right.sink
-        self.universe.vardict[self.left.name].sink = self.sink #FIXME name of memberexpression
+        self.universe.vardict[self.left.rootName()].sink = self.sink
+
 
 
 class VariableDeclarator(Node):
@@ -357,7 +362,7 @@ class CallExpression(Node): #FIXME: also accepting NewExpressions
             arg.parse(pattern)
             self.merge(self.taints, arg.taints)
 
-        if self.state() != "u" and self.callee.name in pattern['sanitizers'] and self.universe.vardict[self.callee.name].state() != "t": #FIXME sanitize inside tainted block 
+        if self.state() != "u" and self.callee.name in pattern['sanitizers'] and self.universe.vardict[self.callee.name].state() != "t":
             self.sanitize(self.callee.name)
 
         super().parse() #sanitization does not save if implicit leaks
@@ -489,6 +494,7 @@ class IfStatement(Node):
                 self.universe.stack.pop()
 
             self.merge(self.taints, self.consequent.taints)
+            self.sink = self.consequent.sink
         
 
 class BlockStatement(Node):
@@ -504,10 +510,11 @@ class BlockStatement(Node):
         for s in self.statements:
             s.parse(pattern)
             self.merge(self.taints, s.taints)
+            self.sink = s.sink
 
 
 
-class WhileStatement(Node): #TODO
+class WhileStatement(Node):
 
     def __init__(self, node, keys, program_json, universe):
         super().__init__(universe)
@@ -611,7 +618,7 @@ class ForStatement(Node):
         super().parse()
         self.statement.parse(pattern)
 
-class MemberExpression(Node): #TOCHECK
+class MemberExpression(Node):
 
     def __init__(self, node, keys, program_json, universe):
         super().__init__(universe)
@@ -627,7 +634,7 @@ class MemberExpression(Node): #TOCHECK
         else:
             raise ValueError("Shoud have never come here")
 
-        self.name = self.obj.name + "." + prop['name'] #FIXME prop is always identifier
+        self.name = self.obj.name + "." + prop['name'] #assuming prop is always identifier
 
     def parse(self, pattern):
         global flows
@@ -636,6 +643,10 @@ class MemberExpression(Node): #TOCHECK
         self.sink = self.obj.sink
 
         self.merge(self.taints, self.obj.taints)
+
+    def rootName(self):
+        return self.name.split(".")[0]
+
 
 filename = str(program.split(".")[0])
 
