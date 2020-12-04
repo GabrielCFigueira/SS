@@ -197,7 +197,7 @@ class Statement(Node):
             self.expression = ArrayExpression(node, keys, program_json, universe)  
         elif node['type'] == "LogicalExpression":
             self.expression = BinaryExpression(node, keys, program_json, universe)  
-        elif node['type'] == "NewExpression": #FIXME check
+        elif node['type'] == "NewExpression":
             self.expression = CallExpression(node, keys, program_json, universe)
         elif node['type'] == "UnaryExpression": #FIXME check
             self.expression = UnaryExpression(node, keys, program_json, universe)

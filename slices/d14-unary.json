@@ -1,0 +1,104 @@
+{
+  "type": "Program",
+  "body": [
+    {
+      "type": "ExpressionStatement",
+      "expression": {
+        "type": "AssignmentExpression",
+        "operator": "=",
+        "left": {
+          "type": "Identifier",
+          "name": "a"
+        },
+        "right": {
+          "type": "CallExpression",
+          "callee": {
+            "type": "Identifier",
+            "name": "b"
+          },
+          "arguments": []
+        }
+      }
+    },
+    {
+      "type": "ExpressionStatement",
+      "expression": {
+        "type": "AssignmentExpression",
+        "operator": "=",
+        "left": {
+          "type": "Identifier",
+          "name": "c"
+        },
+        "right": {
+          "type": "UnaryExpression",
+          "operator": "!",
+          "argument": {
+            "type": "Identifier",
+            "name": "a"
+          },
+          "prefix": true
+        }
+      }
+    },
+    {
+      "type": "ExpressionStatement",
+      "expression": {
+        "type": "AssignmentExpression",
+        "operator": "=",
+        "left": {
+          "type": "Identifier",
+          "name": "f"
+        },
+        "right": {
+          "type": "CallExpression",
+          "callee": {
+            "type": "Identifier",
+            "name": "e"
+          },
+          "arguments": [
+            {
+              "type": "BinaryExpression",
+              "operator": "+",
+              "left": {
+                "type": "BinaryExpression",
+                "operator": "+",
+                "left": {
+                  "type": "BinaryExpression",
+                  "operator": "+",
+                  "left": {
+                    "type": "Identifier",
+                    "name": "c"
+                  },
+                  "right": {
+                    "type": "Literal",
+                    "value": "oi",
+                    "raw": "\"oi\""
+                  }
+                },
+                "right": {
+                  "type": "Identifier",
+                  "name": "d"
+                }
+              },
+              "right": {
+                "type": "Literal",
+                "value": "hi",
+                "raw": "\"hi\""
+              }
+            },
+            {
+              "type": "UnaryExpression",
+              "operator": "!",
+              "argument": {
+                "type": "Identifier",
+                "name": "g"
+              },
+              "prefix": true
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "sourceType": "script"
+}
