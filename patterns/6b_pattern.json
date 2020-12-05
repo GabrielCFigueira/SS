@@ -1,7 +1,7 @@
 [
   {"vulnerability": "[1] a,b -> d",
   "sources": ["b"],
-  "sanitizers": ["c", "b"],
+  "sanitizers": ["c"],
   "sinks": ["d"]},
   
   {"vulnerability": "[2] a -> d",
