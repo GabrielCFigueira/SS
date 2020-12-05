@@ -56,6 +56,22 @@
         "arguments": [
           {
             "type": "Identifier",
+            "name": "b"
+          }
+        ]
+      }
+    },
+    {
+      "type": "ExpressionStatement",
+      "expression": {
+        "type": "CallExpression",
+        "callee": {
+          "type": "Identifier",
+          "name": "f"
+        },
+        "arguments": [
+          {
+            "type": "Identifier",
             "name": "a"
           }
         ]
@@ -103,4 +119,4 @@
     }
   ],
   "sourceType": "script"
-}  
+}
