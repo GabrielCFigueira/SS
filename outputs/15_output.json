@@ -1,0 +1,61 @@
+[
+	{"vulnerability": "[1] b -> f",
+	"sources": ["b"],
+	"sanitizers": [],
+	"sinks": ["f"]},
+
+	{"vulnerability": "[2] b -> f, san -> e -> Sanitized, but might still be compromised",
+	"sources": ["b"],
+	"sanitizers": ['e'],
+	"sinks": ["f"]},
+
+	{"vulnerability": "[3] a,b -> f",
+	"sources": ["b"],
+	"sanitizers": [],
+	"sinks": ["f"]},
+
+	{"vulnerability": "[4] b -> e",
+	"sources": ["b"],
+	"sanitizers": [],
+	"sinks": ["e"]},
+
+	{"vulnerability": "[5] b -> ef",
+	"sources": ["b"],
+	"sanitizers": [],
+	"sinks": ["e"]},
+
+	{"vulnerability": "[5] b -> ef",
+	"sources": ["b"],
+	"sanitizers": [],
+	"sinks": ["f"]},
+
+	{"vulnerability": "[6] b -> ef, san -> e -> Sanitized, but might still be compromised",
+	"sources": ["b"],
+	"sanitizers": ['e'],
+	"sinks": ["e"]},
+
+	{"vulnerability": "[6] b -> ef, san -> e -> Sanitized, but might still be compromised",
+	"sources": ["b"],
+	"sanitizers": ['e'],
+	"sinks": ["f"]},
+
+	{"vulnerability": "[7] b -> e, g -> e",
+	"sources": ["b"],
+	"sanitizers": [],
+	"sinks": ["e"]},
+
+	{"vulnerability": "[7] b -> e, g -> e",
+	"sources": ["g"],
+	"sanitizers": [],
+	"sinks": ["e"]},
+
+	{"vulnerability": "[8] b -> f, g -> f -> Sanitized, but might still be compromised",
+	"sources": ["b"],
+	"sanitizers": ['e'],
+	"sinks": ["f"]},
+
+	{"vulnerability": "[8] b -> f, g -> f -> Sanitized, but might still be compromised",
+	"sources": ["g"],
+	"sanitizers": ['e'],
+	"sinks": ["f"]}
+]
