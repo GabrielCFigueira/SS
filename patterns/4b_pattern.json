@@ -12,5 +12,10 @@
   {"vulnerability": "[3] t -> e",
   "sources": ["t"],
   "sanitizers": [],
+  "sinks": ["e"]},
+  
+  {"vulnerability": "[4] b -> e, sans -> c",
+  "sources": ["b"],
+  "sanitizers": ["c"],
   "sinks": ["e"]}
 ]

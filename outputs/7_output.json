@@ -1,0 +1,11 @@
+[
+	{"vulnerability": "[1] c -> e",
+	"sources": ["c"],
+	"sanitizers": [],
+	"sinks": ["e"]},
+
+	{"vulnerability": "[2] boo -> e",
+	"sources": ["boo"],
+	"sanitizers": [],
+	"sinks": ["e"]}
+]

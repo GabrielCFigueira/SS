@@ -9,7 +9,7 @@
   "sanitizers": ["f"],
   "sinks": ["g"]},
 
-  {"vulnerability": "b, e -> g",
+  {"vulnerability": "b, e -> g [sans]",
   "sources": ["b", "e"],
   "sanitizers": ["f"],
   "sinks": ["g"]}

@@ -7,6 +7,11 @@
   {"vulnerability": "b -> z ",
   "sources": ["b"],
   "sanitizers": [],
+  "sinks": ["z"]},
+  
+  {"vulnerability": "b -> z [sans]",
+  "sources": ["b"],
+  "sanitizers": ["s"],
   "sinks": ["z"]}
 ]
 

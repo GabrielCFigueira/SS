@@ -575,18 +575,19 @@ class WhileStatement(Node):
             for program in uni.programs:
                 program.parse(pattern)
                 uni.breakloop = False
+                self.universe.mergeVardict(uni.vardict)
+                uni.vardict = copy.deepcopy(antevardict)
+                uni.stack = copy.deepcopy(antestack)
 
             sanitizedVariables = 0
-            for var in uni.vardict.keys():
-                if uni.vardict[var].state() == "t":
+            for var in self.universe.vardict.keys():
+                if self.universe.vardict[var].state() == "t":
                     if var not in varlist:
                         varlist += [var]
-                elif uni.vardict[var].state() == "s":
+                elif self.universe.vardict[var].state() == "s":
                     sanitizedVariables += 1
             
 
-            self.universe.mergeVardict(uni.vardict)
-            
             if oldSanitized >= sanitizedVariables and len(varlist) == allTimeTainted:
                 break
 

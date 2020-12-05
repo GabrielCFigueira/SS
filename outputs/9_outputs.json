@@ -1,0 +1,26 @@
+[
+	{"vulnerability": "s -> z",
+	"sources": ["s"],
+	"sanitizers": [],
+	"sinks": ["z"]},
+
+	{"vulnerability": "b -> z ",
+	"sources": ["b"],
+	"sanitizers": [],
+	"sinks": ["z"]},
+
+	{"vulnerability": "b -> z [sans]",
+	"sources": ["b"],
+	"sanitizers": [],
+	"sinks": ["z"]},
+
+	{"vulnerability": "b -> z [sans] -> Sanitized, but might still be compromised",
+	"sources": ["b"],
+	"sanitizers": ['s'],
+	"sinks": ["z"]},
+
+	{"vulnerability": "b -> z [sans] -> Sanitized, but might still be compromised",
+	"sources": ["b"],
+	"sanitizers": ['s', 's'],
+	"sinks": ["z"]}
+]

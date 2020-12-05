@@ -2,7 +2,11 @@
   {"vulnerability": "b -> w",
   "sources": ["b"],
   "sanitizers": [],
-  "sinks": ["w"]}
+  "sinks": ["w"]},
 
+  {"vulnerability": "b -> w",
+  "sources": ["i"],
+  "sanitizers": ["t"],
+  "sinks": ["w"]}
 ]
 

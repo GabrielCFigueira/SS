@@ -12,14 +12,7 @@
 {"vulnerability": "a,b -> e",
   "sources": ["a", "b"],
   "sanitizers": [],
-  "sinks": ["e"]},
-
-{"vulnerability": "b -> e",
-  "sources": ["b"],
-  "sanitizers": [],
   "sinks": ["e"]}
-
-
 
 ]
 
