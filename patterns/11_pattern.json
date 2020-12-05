@@ -2,5 +2,10 @@
   {"vulnerability": "b -> a",
   "sources": ["b"],
   "sanitizers": [],
+  "sinks": ["a"]},
+  
+  {"vulnerability": "i -> a",
+  "sources": ["i"],
+  "sanitizers": [],
   "sinks": ["a"]}
 ]
