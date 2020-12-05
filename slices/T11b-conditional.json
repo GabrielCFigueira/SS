@@ -64,19 +64,43 @@
     {
       "type": "ExpressionStatement",
       "expression": {
+        "type": "AssignmentExpression",
+        "operator": "=",
+        "left": {
+          "type": "Identifier",
+          "name": "v"
+        },
+        "right": {
+          "type": "CallExpression",
+          "callee": {
+            "type": "Identifier",
+            "name": "f"
+          },
+          "arguments": [
+            {
+              "type": "Identifier",
+              "name": "a"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": "ExpressionStatement",
+      "expression": {
         "type": "CallExpression",
         "callee": {
           "type": "Identifier",
-          "name": "f"
+          "name": "k"
         },
         "arguments": [
           {
             "type": "Identifier",
-            "name": "b"
+            "name": "v"
           }
         ]
       }
     }
   ],
   "sourceType": "script"
-}
+}  

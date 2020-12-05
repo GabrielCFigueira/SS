@@ -67,7 +67,18 @@
     {"vulnerability": "i -> b,c",
     "sources": ["i"],
     "sanitizers": ["sans"],
-    "sinks": ["c"]}
+    "sinks": ["c"]},
+
+
+    {"vulnerability": "[1] b -> k",  
+    "sources": ["b"],
+    "sanitizers": [""],
+    "sinks": ["k"]},
+
+    {"vulnerability": "[2] i -> kf",  
+    "sources": ["i"],
+    "sanitizers": [""],
+    "sinks": ["v", "f"]}
 
 ]
   

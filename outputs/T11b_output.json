@@ -57,5 +57,20 @@
 	{"vulnerability": "i -> b,c -> Sanitized, but might still be compromised",
 	"sources": ["i"],
 	"sanitizers": ['sans'],
-	"sinks": ["f"]}
+	"sinks": ["f"]},
+
+	{"vulnerability": "[1] b -> k",
+	"sources": ["b"],
+	"sanitizers": [],
+	"sinks": ["k"]},
+
+	{"vulnerability": "[2] i -> kf",
+	"sources": ["i"],
+	"sanitizers": [],
+	"sinks": ["f"]},
+
+	{"vulnerability": "[2] i -> kf",
+	"sources": ["i"],
+	"sanitizers": [],
+	"sinks": ["v"]}
 ]
