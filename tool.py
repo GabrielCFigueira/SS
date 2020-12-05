@@ -366,7 +366,7 @@ class CallExpression(Node):
             self.sanitize(self.callee.name)
 
         super().parse() #sanitization does not save if implicit leaks
-        
+
         if self.callee.sink:
             for taint in self.taints:
                 v = None
@@ -616,13 +616,16 @@ class ForStatement(Node):
         for key in keys:
             json = json[key]
 
-        json['test'] = {"type": "SequenceExpression", "expressions": [json['init'], json['test'], json['update']]} 
+
+        json['test'] = {"type": "SequenceExpression", "expressions": [json['test'], json['update']]} 
         json['type'] = "WhileStatement"
       
+        self.init = Statement(init, keys + ['init'], program_json, universe)
         self.statement = WhileStatement(json, keys, program_json, universe)
 
     def parse(self, pattern):
         super().parse()
+        self.init.parse(pattern)
         self.statement.parse(pattern)
 
 class MemberExpression(Node):

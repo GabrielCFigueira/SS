@@ -2,7 +2,7 @@ a=b('nis');
 while (true) {
     c=a;
     break;
-    c=a;
+    c="";
 }
 q=x(c);
 

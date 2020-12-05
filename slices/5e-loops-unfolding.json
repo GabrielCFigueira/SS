@@ -65,8 +65,9 @@
                 "name": "c"
               },
               "right": {
-                "type": "Identifier",
-                "name": "a"
+                "type": "Literal",
+                "value": "",
+                "raw": "\"\""
               }
             }
           }
