@@ -49,23 +49,23 @@
     "sanitizers": ["sans"],
     "sinks": ["b", "c"]},
 
-    {"vulnerability": "[12] i -> f",
+    {"vulnerability": "[11] i -> f",
     "sources": ["i"],
     "sanitizers": [],
     "sinks": ["f"]},
 
-    {"vulnerability": "[13] i -> b,c",
+    {"vulnerability": "[12] i -> b,c",
     "sources": ["i"],
     "sanitizers": ["sans"],
     "sinks": ["b", "c"]},
 
 
-    {"vulnerability": "[14] b -> k",  
+    {"vulnerability": "[13] b -> k",  
     "sources": ["b"],
     "sanitizers": [""],
     "sinks": ["k"]},
 
-    {"vulnerability": "[15] i -> kf",  
+    {"vulnerability": "[14] i -> kf",  
     "sources": ["i"],
     "sanitizers": [""],
     "sinks": ["v", "f"]}
