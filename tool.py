@@ -203,23 +203,23 @@ class Statement(Node):
             self.expression = BinaryExpression(node, keys, program_json, universe)  
         elif node['type'] == "NewExpression":
             self.expression = CallExpression(node, keys, program_json, universe)
-        elif node['type'] == "UnaryExpression": #FIXME check
+        elif node['type'] == "UnaryExpression": 
             self.expression = UnaryExpression(node, keys, program_json, universe)
         elif node['type'] == "UpdateExpression":
             self.expression = UnaryExpression(node, keys, program_json, universe)
         elif node['type'] == "BreakStatement":
             universe.breakloop = True
             self.expression = None
-        elif node['type'] == "SequenceExpression": #FIXME check
+        elif node['type'] == "SequenceExpression": 
             self.expression = SequenceExpression(node, keys, program_json, universe)
        
         elif node['type'] == "ForStatement":
             self.expression = ForStatement(node, keys, program_json, universe)
-        elif node['type'] == "VariableDeclarator": #FIXME check
+        elif node['type'] == "VariableDeclarator": 
             self.expression = VariableDeclarator(node, keys, program_json, universe)
-        elif node['type'] == "VariableDeclaration": #FIXME check
+        elif node['type'] == "VariableDeclaration": 
             self.expression = VariableDeclaration(node, keys, program_json, universe)
-        elif node['type'] == "ConditionalExpression": #FIXME check
+        elif node['type'] == "ConditionalExpression": 
             self.expression = ConditionalExpression(node, keys, program_json, universe)
         else:
             raise ValueError("Shoud have never come here")
@@ -296,7 +296,7 @@ class VariableDeclarator(Node):
 
 
 
-class VariableDeclaration(Node): #FIXME not tested
+class VariableDeclaration(Node): 
 
     def __init__(self, node, keys, program_json, universe):
         super().__init__(universe)
@@ -336,7 +336,7 @@ class ConditionalExpression(Node):
         self.merge(self.taints, self.statement.taints)
 
 
-class CallExpression(Node): #FIXME: also accepting NewExpressions
+class CallExpression(Node): 
 
     def __init__(self, node, keys, program_json, universe):
         super().__init__(universe)
@@ -378,7 +378,7 @@ class CallExpression(Node): #FIXME: also accepting NewExpressions
                     flows += [v]
 
 
-class BinaryExpression(Node): #FIXME also accepting logicalExp ( ||, &&)
+class BinaryExpression(Node):
 
     def __init__(self, node, keys, program_json, universe):
         super().__init__(universe)
@@ -396,7 +396,7 @@ class BinaryExpression(Node): #FIXME also accepting logicalExp ( ||, &&)
 
         self.merge(self.right.taints,self.left.taints)
 
-class UnaryExpression(Node): #FIXME not tested
+class UnaryExpression(Node): 
 
     def __init__(self, node, keys, program_json, universe):
         super().__init__(universe)
@@ -411,7 +411,7 @@ class UnaryExpression(Node): #FIXME not tested
         self.merge(self.taints, self.argument.taints)
 
 
-class ArrayExpression(Node): #FIXME not tested
+class ArrayExpression(Node): 
 
     def __init__(self, node, keys, program_json, universe):
         super().__init__(universe)
@@ -430,7 +430,7 @@ class ArrayExpression(Node): #FIXME not tested
             self.merge(self.taints, e.taints)
 
 
-class SequenceExpression(Node): #FIXME not tested
+class SequenceExpression(Node): 
 
     def __init__(self, node, keys, program_json, universe):
         super().__init__(universe)
