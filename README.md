@@ -1,3 +1,2 @@
-##TODO: recheck easy expressions to implement, do var declaration, test a lot of patterns
 
-run with python3 tool.py proj-slices/slice.json pattern.json
+run with python3 tool.py <path_to_repo>/program.json <path_to_repo>/patterns.json
