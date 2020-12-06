@@ -1,0 +1,12 @@
+[
+	{"vulnerability": "document.URL -> document.write",
+	"sources": ["document.URL"],
+	"sanitizers": [],
+	"sinks": ["document.write"]},
+
+	{"vulnerability": "document.URL -> t",
+	"sources": ["document.URL"],
+	"sanitizers": [],
+	"sinks": ["t"]}
+]
+
